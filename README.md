@@ -14,10 +14,20 @@ currently happening in the field.
 
 ```
 README.md                      – this file (also acts as the update log)
+docs/                          – standalone knowledge pages (self-contained HTML)
+  cognitive-agents.html        – v1: cognitive agents knowledge page
+  tutorial-cognitive.html      – v2: BDI cognitive architecture tutorial (cognitive.js)
 editions/                      – one file per weekly edition
   2026-W38-cognitive-agents.md – seed edition (report on cognitive agents, Sep 2026)
 tools/remind-weekly.ps1        – the weekly reminder script (Windows scheduled task)
 ```
+
+## Knowledge pages
+
+| Version | Page | Date | Notes |
+| --- | --- | --- | --- |
+| v1 | [docs/cognitive-agents.html](docs/cognitive-agents.html) | 2026-09-18 | Framing, CoALA, BDI, SDKs, standards, evals, safety, cabin sim |
+| v2 | [docs/tutorial-cognitive.html](docs/tutorial-cognitive.html) | 2026-09-22 | BDI architecture tutorial for `cognitive.js`: state S/PHILL, ROT/HGT tables, cognition loop, memory decay λ=0.004, trust & mood formulas, event timeline, `__EXPERIMENTER_CHAT__` hook, parameters |
 
 ## Weekly update log
 
