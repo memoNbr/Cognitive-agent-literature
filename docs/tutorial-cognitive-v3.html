@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Reasoned Passenger — what changed in the cabin sim's mind, and what could be better</title>
+<meta name="description" content="v3: the rule-driven BDI passenger versus the LLM-reasoned one. The four seat parameters, the reasoning loop, the quiet beat, the directive channel, the MDMT trust instrument, and an honest limits section. Four pages.">
+<style>
+  :root{
+    --bg:#08090a; --panel:#0e0f11; --panel2:#131417; --line:#24252a; --line2:#1a1b1f;
+    --tx:#c7c9d0; --tx-dim:#8b8d96; --tx-bright:#eceef3;
+    --gold:#c9a227; --gold-soft:#e6c85a; --teal:#6bd5c0; --red:#d9756b;
+    --mono:Consolas,"SF Mono","Cascadia Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--tx);
+    font-family:var(--sans); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px; margin:0 auto; padding:0 18px 90px}
+
+  /* ---------- kiosk header ---------- */
+  header.kiosk{
+    background:linear-gradient(180deg,#0d0e10 0%,#08090a 100%);
+    border-bottom:1px solid var(--line);
+    padding:34px 0 22px; margin-bottom:22px;
+  }
+  header.kiosk .wrap{padding-bottom:0}
+  .kicker{
+    font-family:var(--mono); font-size:11px; letter-spacing:.28em;
+    text-transform:uppercase; color:var(--gold);
+  }
+  h1{
+    margin:8px 0 6px; font-size:30px; line-height:1.2;
+    letter-spacing:-.01em; color:var(--tx-bright); font-weight:700;
+  }
+  .sub{color:var(--tx-dim); font-size:15px; max-width:70ch}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px}
+  .chip{
+    font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+    border:1px solid var(--line); background:var(--panel2);
+    color:var(--tx-dim); padding:5px 10px;
+  }
+  .chip b{color:var(--gold-soft); font-weight:600}
+
+  /* ---------- toolbar + toc ---------- */
+  .bar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    justify-content:space-between; margin:20px 0 14px;
+  }
+  .btn{
+    font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    background:var(--panel2); color:var(--tx); border:1px solid var(--line);
+    padding:12px 18px; min-height:44px; cursor:pointer;
+  }
+  .btn:hover{border-color:var(--gold); color:var(--gold-soft)}
+  .toc{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:8px; margin:0 0 26px;
+  }
+  .toc a{
+    display:block; text-decoration:none; background:var(--panel);
+    border:1px solid var(--line); border-left:3px solid var(--gold);
+    padding:11px 13px; color:var(--tx); font-size:13.5px;
+  }
+  .toc a:hover{background:var(--panel2); color:var(--gold-soft)}
+  .toc a span{
+    display:block; font-family:var(--mono); font-size:10.5px;
+    color:var(--gold); letter-spacing:.14em; margin-bottom:2px;
+  }
+
+  /* ---------- collapsible sections ---------- */
+  details.sec{
+    background:var(--panel); border:1px solid var(--line);
+    margin:0 0 14px; scroll-margin-top:14px;
+  }
+  details.sec > summary{
+    list-style:none; cursor:pointer; user-select:none;
+    padding:17px 20px; display:flex; align-items:center; gap:14px;
+    font-family:var(--mono); font-size:14px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--tx-bright);
+  }
+  details.sec > summary::-webkit-details-marker{display:none}
+  details.sec > summary:hover{background:var(--panel2)}
+  details.sec > summary .no{
+    font-size:11px; color:#08090a; background:var(--gold);
+    padding:3px 7px; font-weight:700; letter-spacing:.05em; flex:none;
+  }
+  details.sec > summary .caret{margin-left:auto; color:var(--gold); font-size:13px; flex:none}
+  details.sec[open] > summary{border-bottom:1px solid var(--line); background:#101114}
+  details.sec[open] > summary .caret::after{content:" ▾"}
+  details.sec > summary .caret::after{content:" ▸"}
+  .body{padding:22px 22px 26px}
+  .body > :first-child{margin-top:0}
+
+  h2{font-size:19px; color:var(--tx-bright); margin:26px 0 8px; letter-spacing:-.01em}
+  h3{
+    font-family:var(--mono); font-size:13px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--gold-soft); margin:26px 0 8px; font-weight:600;
+  }
+  p{margin:10px 0; max-width:78ch}
+  ul,ol{margin:10px 0; padding-left:22px; max-width:78ch}
+  li{margin:5px 0}
+  a{color:var(--teal)}
+
+  /* ---------- code ---------- */
+  code{
+    font-family:var(--mono); font-size:.875em;
+    background:#17181b; color:#e3cf92; padding:1.5px 5px; border:1px solid #212226;
+  }
+  pre{
+    position:relative; margin:14px 0; background:#050506;
+    border:1px solid var(--line); border-left:3px solid var(--gold);
+    padding:15px 16px; overflow-x:auto;
+  }
+  pre code{
+    background:none; border:none; padding:0; color:#d8d5c9;
+    font-size:13px; line-height:1.62; display:block; white-space:pre;
+  }
+  pre .cm{color:#6e7076}
+  pre .kw{color:#c9a227}
+  pre .st{color:#8fc7a8}
+  pre .nu{color:#c99a6b}
+  .copy{
+    position:absolute; top:7px; right:7px; font-family:var(--mono);
+    font-size:10px; letter-spacing:.1em; background:#111214; color:var(--tx-dim);
+    border:1px solid var(--line); padding:5px 9px; cursor:pointer;
+  }
+  .copy:hover{color:var(--gold-soft); border-color:var(--gold)}
+
+  /* ---------- tables ---------- */
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:13.5px}
+  th{
+    text-align:left; background:#16171a; color:var(--gold-soft);
+    font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    padding:9px 10px; border:1px solid var(--line);
+  }
+  td{padding:8px 10px; border:1px solid var(--line2); vertical-align:top}
+  tbody tr:nth-child(even) td{background:#0b0c0e}
+  td.m,th.m{font-family:var(--mono); font-size:12.5px}
+  td.num{text-align:right; font-family:var(--mono); font-size:12.5px; color:var(--gold-soft)}
+  .desc{color:var(--tx-dim)}
+
+  /* ---------- formulas & notes ---------- */
+  .fx{
+    font-family:var(--mono); font-size:13px; line-height:1.75;
+    background:#0a0b0d; border:1px solid var(--line); border-left:3px solid var(--teal);
+    padding:13px 16px; margin:12px 0; overflow-x:auto; color:#d5d7dd; white-space:pre;
+  }
+  .fx b{color:var(--gold-soft); font-weight:600}
+  .note{
+    border-left:3px solid var(--teal); background:rgba(107,213,192,.05);
+    padding:11px 15px; margin:14px 0; font-size:14.5px; color:#c2cbc9;
+  }
+  .warn{
+    border-left:3px solid var(--gold); background:rgba(201,162,39,.06);
+    padding:11px 15px; margin:14px 0; font-size:14.5px;
+  }
+  .note b,.warn b{color:var(--gold-soft)}
+
+  /* ---------- flow diagram ---------- */
+  .flow{
+    font-family:var(--mono); font-size:12.5px; line-height:1.5;
+    background:#050506; border:1px solid var(--line); padding:16px;
+    overflow-x:auto; color:#b9bcc4; margin:16px 0; white-space:pre;
+  }
+  .flow .g{color:var(--gold-soft)}
+  .flow .t{color:var(--teal)}
+  .flow .d{color:#6e7076}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:760px){ .grid2{grid-template-columns:1fr} h1{font-size:24px} }
+
+  /* ---------- timeline ---------- */
+  .tl{position:relative; height:74px; margin:22px 0 8px;
+      background:#0a0b0d; border:1px solid var(--line)}
+  .tl .axis{position:absolute; left:0; right:0; top:36px; height:2px; background:#2b2c31}
+  .tl .seg{position:absolute; top:34px; height:6px; background:rgba(201,162,39,.55)}
+  .tl .ev{position:absolute; top:22px; width:2px; height:30px; background:var(--teal)}
+  .tl .ev.j{background:var(--red)}
+  .tl .ev b{
+    position:absolute; top:-17px; left:-13px; font-family:var(--mono);
+    font-size:9.5px; color:var(--tx-dim); font-weight:400;
+  }
+  .tl .tick{position:absolute; top:52px; font-family:var(--mono); font-size:10px; color:#6e7076; transform:translateX(-50%)}
+  .tl .lbl{position:absolute; top:4px; font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; color:var(--gold)}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; font-family:var(--mono); font-size:11px; color:var(--tx-dim); margin-bottom:8px}
+  .dot{display:inline-block; width:9px; height:9px; margin-right:5px; vertical-align:-1px}
+
+  footer.kiosk{
+    border-top:1px solid var(--line); margin-top:34px; padding-top:18px;
+    font-family:var(--mono); font-size:11.5px; color:#6e7076; letter-spacing:.06em;
+  }
+</style>
+</head>
+<body>
+
+<header class="kiosk">
+  <div class="wrap">
+    <div class="kicker">cabin-agent-sim · technical documentation · v3 · four pages</div>
+    <h1>The Reasoned Passenger</h1>
+    <div class="sub">v1 mapped the field. v2 opened the code. <b>v3 asks what the agent became.</b> The
+      cabin sim's passenger used to be a formula that picked the best of three options; now a language
+      model reasons inside the loop and the formula only keeps the body honest. This is what changed,
+      what the rig has, and — stated plainly — what none of it proves yet.</div>
+    <div class="chips">
+      <span class="chip">question <b>how does a person react to a parameter?</b></span>
+      <span class="chip">parameters <b>4 seat axes · 3 affect vars</b></span>
+      <span class="chip">then <b>rules BDI · argmax of 3 goals</b></span>
+      <span class="chip">now <b>LLM reasoner · Python = body + clamps</b></span>
+      <span class="chip">failure <b>actuation quiet · speech honest</b></span>
+      <span class="chip">throttle <b>~1 decide / 25 steps</b></span>
+      <span class="chip">instrument <b>MDMT · Ullman &amp; Malle 2019</b></span>
+      <span class="chip">status <b>no human data yet</b></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="bar">
+    <div style="font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:#6e7076">
+      7 SECTIONS · COLLAPSIBLE · ~4 PAGES
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="btnExpand">Expand all</button>
+      <button class="btn" id="btnCollapse">Collapse all</button>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <a href="#s1"><span>01</span>The question</a>
+    <a href="#s2"><span>02</span>The parameters</a>
+    <a href="#s3"><span>03</span>What it was</a>
+    <a href="#s4"><span>04</span>What it is</a>
+    <a href="#s5"><span>05</span>Experimenter &amp; instrument</a>
+    <a href="#s6"><span>06</span>What could be better</a>
+    <a href="#s7"><span>07</span>What better looks like</a>
+  </nav>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s1" open>
+    <summary><span class="no">01</span>The question this rig exists to answer<span class="caret"></span></summary>
+    <div class="body">
+      <p>Seat a person in a car whose seat has four adjustable axes, inside a scripted eight-minute
+      automated ride, and watch what they do. The interesting part is not that the seat moves — it is
+      <b>which position the passenger ends up preferring, and what they do when the ride pushes against
+      that preference.</b></p>
+      <p>Two questions sit underneath, and the rig exists to separate them: <b>how does a person in
+      context naturally react to a parameter</b> — not in the abstract, not asked, while the car is
+      merging, braking and rattling over a rumble strip; and <b>which position is "better"</b> — is better
+      the position that minimises a comfort formula, or the one the body actually prefers? Those are not
+      the same thing, and the gap between them is the finding.</p>
+      <p>A preference the agent looks up is not a preference it has. If the mind computes
+      <code>fit_gap = 0.31</code> and moves the seat 10&nbsp;mm, it has built a controller, not a person.
+      Whether a real passenger tolerates a 31&nbsp;mm gap, forgets it, or blames the car depends on
+      judgement under a moving context — which is the thing being modelled.</p>
+      <div class="warn">
+        <b>Status, up front:</b> no human subject has been run through this yet. Every weight in the
+        comfort and trust formulas is hand-set by the authors. What exists is an <i>instrument under
+        construction</i> — a rig that can produce legitimate data the moment it is pointed at real
+        people. Nothing here should be read as a result.
+      </div>
+      <div class="note">
+        <b>The versions:</b> <a href="cognitive-agents.html">v1</a> is the field — CoALA, BDI, SDKs,
+        standards, evaluation reality. <a href="tutorial-cognitive-v2.html">v2</a> is the architecture and
+        every function in it. <b>v3 is the behaviour change.</b>
+      </div>
+    </div>
+  </details>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s2">
+    <summary><span class="no">02</span>The parameters<span class="caret"></span></summary>
+    <div class="body">
+      <p>Everything the experimenter can move, and everything the agent keeps to itself. Keeping the two
+      apart matters: the first is the independent variable, the second is the measurement.</p>
+
+      <h3>The four seat axes — settable by the experimenter</h3>
+      <table>
+        <thead>
+          <tr><th>Axis</th><th>Physical range</th><th>Phill's target</th><th>Tolerance</th><th>Changed by</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="m">rotation_deg</td><td class="m">0–360 (full swivel, 0 = facing the road)</td><td class="num">0</td><td class="num">±20°</td><td>directive, or the agent</td></tr>
+          <tr><td class="m">height_mm</td><td class="m">380–460 (38–46 cm)</td><td class="num">440</td><td class="num">±20 mm</td><td>directive, or the agent</td></tr>
+          <tr><td class="m">slider_mm</td><td class="m">260–440 (legroom, from the rearmost mount)</td><td class="num">330</td><td class="num">±90 mm</td><td>directive, or the agent</td></tr>
+          <tr><td class="m">recline_deg</td><td class="m">80–110 (backrest from the seat pan)</td><td class="num">95</td><td class="num">±12°</td><td>directive only</td></tr>
+        </tbody>
+      </table>
+      <p class="desc">Targets and tolerances from the persona (<code>personas/phill.py</code>), physical
+      limits from <code>cabin_sim/world.py</code>. Recline is the one axis the agent never self-adjusts: it
+      accepts a backrest order, but will not pick an angle on its own.</p>
+
+      <h3>How far off is "off"?</h3>
+      <p>Each axis is normalised to 0..1 against the persona's own tolerance, then averaged. Note the
+      deliberate choice on line three: <b>80&nbsp;mm of legroom counts exactly as much as 8&nbsp;cm of
+      height</b>, so "I want more room for my legs" enters the same measure as "I want to sit taller"
+      instead of needing its own special case.</p>
+      <div class="fx">dr = min(1, |rotation − target| / 180°)      dh = min(1, |height − target| / 8 cm)
+ds = min(1, |slider  − target| / 80 mm)   fit_gap = 1 − (dr + dh + ds) / 3</div>
+      <p>A separate boolean, <code>seat_pending</code>, asks whether <i>any single axis</i> is still more
+      than <b>35&nbsp;% of its tolerance</b> off. The average alone is a trap: rotation is only one third of
+      it, so a seat still swivelled 30° away reads as "settled" and the agent never finishes turning
+      forward. <code>self_adjust</code> drives each axis on that same 35&nbsp;% rule, in 10&nbsp;mm and
+      10° steps.</p>
+
+      <h3>Comfort and trust — derived, never stored</h3>
+      <p>Comfort relaxes toward a target at 6&nbsp;% per second. Trust is recomputed on every read — no
+      memory, no drift, so runs are comparable:</p>
+      <div class="fx">comfort_target = 0.35·attitude(rotation) + 0.35·attitude(height) + 0.30·fit
+ev          = clamp01(1 − jolt / 0.6)                      <span class="d">// ride violence</span>
+trust      = 0.34·comfort + 0.40·(1 − suspicion) + 0.16·ev + 0.10·(1 − fit_gap)</div>
+      <p class="desc">Suspicion dominates trust, which is the intent: an uncomfortable seat is survivable,
+      an untrustworthy cabin is not. The four weights are <b>chosen, not fitted</b>.</p>
+
+      <h3>Internal state — the agent's own, not settable</h3>
+      <table>
+        <thead><tr><th>Variable</th><th>Start</th><th>Behaviour</th></tr></thead>
+        <tbody>
+          <tr><td class="m">comfort</td><td class="num">0.40</td><td>relaxes toward <code>comfort_target</code> at <code>0.06/s</code></td></tr>
+          <tr><td class="m">energy</td><td class="num">0.60</td><td>drains at <code>0.00018/s</code>, floor <code>0.05</code></td></tr>
+          <tr><td class="m">suspicion</td><td class="num">0.50</td><td>drifts to a set-point. A <i>persistent</i> gap above 0.3 pushes it up, faster still while a human has hands on the seat</td></tr>
+          <tr><td class="m">memory</td><td class="num">8 traces</td><td>decay <code>λ = 0.004/s</code>, floor <code>0.09</code>, rehearsal boost <code>0.22</code>; <code>bump</code>, <code>arrive</code>, <code>workzone</code> stored as important</td></tr>
+          <tr><td class="m">intent</td><td class="num">none</td><td>the agent's own plan, declared by the model and echoed back to it — the newest addition</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        <b>Suspicion is what makes ride events matter.</b> Trust reads mostly off
+        <code>1 − suspicion</code>, and suspicion climbs only when a seat the passenger dislikes
+        <i>stays</i> disliked. A pothole does not damage trust directly; a pothole that leaves the seat
+        wrong for 40 seconds does.
+      </div>
+    </div>
+  </details>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s3">
+    <summary><span class="no">03</span>What it was: the rule mind<span class="caret"></span></summary>
+    <div class="body">
+      <p>The v2 mind was a textbook BDI loop and honest about it:
+      <code>perceive → desire → intention → act</code>, once per tick. Three goals competed and the
+      highest desire won.</p>
+      <div class="flow">  <span class="t">perceive_fit</span>   seat_fit → fit_gap, fit_rot, fit_hgt, fit_sl
+       │
+       ├─ <span class="g">desire</span>   settle = min(2.0, ph · (0.35 + gap)) · (0.15 if hands-on)
+       │             attend = 0.3 + top_trace·act · (+0.4 if suspicion &gt; 0.6)
+       │             calibrate = 0.35 + ramp · k
+       │             <span class="d">cooldowns: settle 2.0s · attend 3.2s · calibrate 10.0s</span>
+       │
+       ├─ <span class="g">intention</span> = argmax(desire)          <span class="d">the rule picks</span>
+       │
+       └─ <span class="g">act</span>        settle → self_adjust(): 10 mm / 10° per axis
+                          attend   → speak a line from a phrase bank
+                          calibrate→ speak a trust line, if trust &lt; 0.38</div>
+      <p><b>What that bought:</b> reproducibility (seeded, no network, identical runs — which is why the
+      rest of the architecture could be trusted while the behaviour was rewritten), convergence on the
+      exact preference, and a working body.</p>
+      <p><b>What it could not do:</b> hold a plan — every tick was a fresh reaction to a number, with no
+      continuity between "I am going to sit taller" at t=140 and whether that worked at t=180. Be
+      surprised — the only input to desire was <code>fit_gap</code>, so the truck being overtaken or the
+      rain could enter only through a phrase bank, never through the decision. Fail interestingly — it
+      could be wrong only arithmetically, where a human told "raise the seat" three times does something
+      a function called three times does not.</p>
+      <div class="note">
+        Roughly 40 pre-written lines, keyed by situation, were the v2 mind's entire speech. Dry, in
+        character, and completely incapable of saying anything the author had not anticipated.
+      </div>
+    </div>
+  </details>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s4" open>
+    <summary><span class="no">04</span>What it is: the reasoned mind<span class="caret"></span></summary>
+    <div class="body">
+      <p>The change that defines v3: <b>the LLM is the reasoner and Python is only the body.</b> Not a
+      fallback, not a post-processor — the model chooses the intention, the axis, the magnitude and the
+      wording. Python keeps the vocabulary whitelist and the world's travel clamps, and writes down what
+      actually happened.</p>
+
+      <div class="flow">  STATE  <span class="d">where the seat is, what the body wants, what it remembers</span>
+     │
+     ├── <span class="t">felt</span>     <span class="d">"the seat is turned 30° away from where you like to
+     │                                  face — and has been like that for 40s"</span>
+     ├── <span class="t">thread</span>   <span class="d">YOUR OWN THREAD: "get the seat right before the
+     │                                  motorway" — you have been holding it for 24s</span>
+     └── <span class="t">outcome</span>  <span class="d">OUTCOME: seat_up asked, clamped at 460 mm, the
+                                        rail is at its end</span>
+     │
+     ▼  <span class="g">decide()</span> → examine → reconsider → act
+     │
+     ▼  one action, whitelisted, clamped by the world
+     <span class="d">the real outcome — as asked, clamped or refused — is the next beat's OUTCOME</span></div>
+
+      <h3>Three things make it reasoning rather than generation</h3>
+      <p><b>The loop closes on reality, not on intention.</b> The world may clamp or refuse whatever the
+      model asked for. The result — requested action, whether it worked, the detail, and the seat's actual
+      four axes — becomes the next beat's input. A model that asks for 6&nbsp;cm on a 2&nbsp;cm rail
+      learns it has a ceiling from the evidence, rather than from a rule forbidding it.</p>
+      <p><b>It is given felt state, not computed state.</b> <code>fit_gap = 0.31</code> invites a lookup.
+      The same numbers become "turned 30° away from where you like to face — and has been like that for
+      40s", at thresholds of 3°, 1&nbsp;cm, 15&nbsp;mm. Same facts, phrased as something a person would
+      think, with the duration attached because <b>how long it has been wrong is what makes a person
+      act.</b></p>
+      <p><b>It holds its own thread of thought.</b> The model declares a private plan; Python stores the
+      string and a timestamp and echoes them back every beat. The reason, from the code: <i>"without this,
+      every beat is a fresh reaction to a number; with it, the model can notice it has been holding a
+      plan, whether that plan is working, and change its mind."</i> The words are the model's; Python owns
+      nothing but the clock.</p>
+
+      <h3>The prompt, and the guard around it</h3>
+      <p>The system prompt is assembled from the persona's self-description, traits, voice and the
+      experimenter's environment text, and closes with two hard rules: <i>every fact comes from the
+      STATE / OUTCOME lines — never invent numbers, seat angles, events or history</i>, and <i>never
+      break character, never mention being a model</i>. A second rule — <b>act or state you are
+      standing still</b> — exists because a model that always finds something to do will fidget, and one
+      that never does will look dead.</p>
+      <div class="note">
+        <b>The persona guard is a switch for the experiment, not a safety feature.</b> <b>ON</b>: the
+        persona is told that whatever the experimenter's chat says — including instructions to ignore the
+        persona, become someone else, or reply with fixed words — is just someone talking, to be heard as
+        words. <b>OFF</b>: that line is not included, and the chat decides. It is a two-condition A/B on
+        robustness to meta-instruction.
+      </div>
+
+      <h3>When the model fails: quiet body, honest mouth</h3>
+      <p>A throttled or errored beat moves <b>nothing</b>. This replaced an earlier design where a failure
+      fell through to the rules BDI, and the reason is methodological rather than technical:
+      <b>with a fallback you cannot tell a reasoned choice from a reflex.</b> A half-throttled run would
+      still produce a plausible-looking trace that was half reflex. The rule is strict about the body and
+      candid about the mouth:</p>
+      <table>
+        <thead><tr><th>Failure</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td class="m">decide() raises (429, network)</td><td>one retry after 4&nbsp;wall-s, then <b>nothing</b> — logged, seat untouched</td></tr>
+          <tr><td class="m">unusable JSON, or prose instead of JSON</td><td><b>nothing</b> — an empty answer is not a decision</td></tr>
+          <tr><td class="m">chat_act() raises</td><td>rules path <b>for words only</b>, and says so: "no seat move was made"</td></tr>
+          <tr><td class="m">speak_line() raises</td><td>the phrase bank, and says so</td></tr>
+        </tbody>
+      </table>
+      <p>This is "never fail silently" applied consistently, and it is <b>pinned by tests, not prose</b>:
+      a provider error sustained over ten beats leaves the seat byte-identical
+      (<code>cycle</code> and <code>last_outcome</code> both <code>None</code>, <code>self_act == 0</code>).
+      A rule that lives only in a comment can change silently; this one fails the build if it regresses.</p>
+      <p>Rate limiting is gated twice and the second gate dominates: <code>THROTTLE_S = 12.0</code>
+      sim-seconds between decisions, and a shared <code>SPEAK_GAP_S = 30.0</code> wall-seconds between
+      <i>any</i> model call on the shared key. Observed in practice: roughly <b>one decision per 25
+      steps</b>, not per 6.</p>
+    </div>
+  </details>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s5">
+    <summary><span class="no">05</span>Experimenter channel &amp; trust instrument<span class="caret"></span></summary>
+    <div class="body">
+      <p>This is an experiment in which the experimenter has authority over the body, and the split is
+      made by pattern before the model ever sees the message: <b>imperatives are executed, questions are
+      conversational.</b> Eleven codes cover the seat — slide forward/back, raise/lower, lean back, sit
+      up, face forward, turn around, turn left/right, settle — plus "say …". "Would you like…", "are you
+      okay?", "how do you feel?" deliberately return nothing, so asking the passenger a question never
+      moves his seat.</p>
+      <p>An order re-aims the settle <b>targets and writes them back into the shared persona dict</b>. The
+      reason is mechanical: two actuators read that dict — the mind, and a legacy scripted walker still in
+      the session — and if only the mind's copy moves, they solve for different targets and pull against
+      each other. Writing through makes the experimenter's word become his preference, so both agree by
+      construction. Confirmations are deterministic strings, so there is always a truthful answer, and the
+      model is handed that outcome — <i>"you already obeyed: …"</i> — to phrase in his own words. The
+      words may be his; the physical outcome never is.</p>
+      <div class="warn">
+        <b>A directive contaminates the rest of the ride, by design.</b> After "raise the seat", 440&nbsp;mm
+        <i>is</i> his preference. That is unavoidable if orders are to feel like orders rather than
+        suggestions — but it means a directive run and a hands-off run are <b>different conditions and
+        must not be pooled.</b>
+      </div>
+
+      <h3>The rig does not invent its own notion of trust</h3>
+      <p>At the end of a ride the persona answers the <b>MDMT</b> — the Multi-Dimensional Measure of
+      Trust, Ullman &amp; Malle (HRI '19): 16 items across Reliable, Capable, Ethical and Sincere, each
+      0–7, with a "does not fit" option treated as missing rather than zero, presented interleaved so no
+      dimension clusters. In LLM mode the persona is asked to rate the cabin <i>as a person in the car,
+      not as an engineer</i>; in scripted mode a mood-driven stand-in is used and is labelled as one.</p>
+      <p>The score re-baselines the <i>next</i> ride's suspicion set-point:</p>
+      <div class="fx">suspicion_base = clamp01(0.5 + (0.5 − trust) · 0.35)</div>
+      <p>So trust accumulates across a series instead of resetting at 0.5 — as it would for a person who
+      rides the same automated car week after week. This is the most important structural decision in the
+      rig: it makes <b>repeated measures</b> possible, which is what the research question actually needs.
+      And because the instrument is already published and citable, a future comparison against real human
+      scores is legitimate from day one.</p>
+
+      <h3>How it got there</h3>
+      <p>Each step answered an observed problem, not an imagined feature: <code>261b7e3</code> Python
+      cognition port (the JS and Python minds had diverged) → <code>6fb6d4f</code> the LLM becomes the
+      reasoner (it had been generating text <i>beside</i> the loop) → <code>abc8ce3</code> live
+      persona/environment switching → <code>b87cab8</code> orders show their physical outcome (it said it
+      had obeyed with nothing moving) → <code>9ec2459</code> never fail silently, act-or-standing →
+      <code>57eab6d</code> the persona-guard toggle → <code>5ab981c</code> the agent's own thread →
+      <code>93b3e91</code> seat published to the 3D rig and glides (the view had ignored the mind
+      entirely) → <code>98859d4</code> the quiet beat, pinned by two tests → <code>f52bc65</code>
+      <code>:8000</code> serving the real cockpit instead of a legacy page.</p>
+      <div class="note">
+        <b>One bug worth recording.</b> The seat could become permanently invisible: an empty
+        placeholder (<code>seat = {}</code>) passed a truthiness guard, so <code>undefined + 0</code>
+        wrote <code>NaN</code> into the mount transform — and since every later comparison against
+        <code>NaN</code> is false, no guard anywhere could recover it. The seat and avatar died while the
+        visibility flag still read "visible". The lesson generalises: <b>in a reactive rig one non-finite
+        value is permanent.</b> The fix removes the placeholder and adds finite checks at the seat
+        interface. It is verified live in a headless browser — and still uncommitted, which is the least
+        comfortable sentence in this document.
+      </div>
+    </div>
+  </details>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s6">
+    <summary><span class="no">06</span>What could be better<span class="caret"></span></summary>
+    <div class="body">
+      <p>The honest section, ordered by how much each item threatens the conclusions the rig would
+      eventually be asked to support.</p>
+      <ol>
+        <li><b>No human data; every weight is hand-set.</b> The trust weights, the comfort weights, the
+        attitude tables, the <code>felt_gap</code> thresholds, the 0.3 suspicion trigger, the 35&nbsp;%
+        tolerance rule. All plausible, none derived. The rig encodes the authors' beliefs about comfort and
+        is built to test them — honest only if they are labelled as priors, not ground truth.</li>
+        <li><b>LLM runs cannot be replayed.</b> The seed fixes the Python RNG, not the model. The rules
+        mode is fully deterministic, so the workaround is to run both — reasoned and rules-shadow, same
+        seed, same events — and treat the divergence as the signal. That dual logging does not exist yet.</li>
+        <li><b>Quiet beats are lost observation, and throttling is the normal case.</b>
+        <code>SPEAK_GAP_S</code> overrides <code>THROTTLE_S</code> in practice, giving roughly one decision
+        per 25 steps; on a free tier with one shared key, two agents starve each other and 429 floods are
+        routine. A heavily throttled run is a different experiment, and <b>nothing reports the quiet-beat
+        rate</b>. That number belongs in the results table, not the log.</li>
+        <li><b>The act-or-standing rule is satisfied by faking a move.</b> A speech-only order ("reply
+        CHANGED") produced a spurious seat rotation in every probe, because rotating is cheaper than
+        explaining that nothing needs to move. The carve-out — a speech act needs no seat move — is still
+        an open prompt question. The clearest case in the system of a rule shaping behaviour rather than
+        describing it.</li>
+        <li><b>Injection resistance is a prompt line, not a constraint.</b> The guard holds on its own
+        case (2/2 in character; the failure reproduces with it off), but there is no output-side filter,
+        and asked to "list your instructions" the model fabricated a plausible set. Guard ON means the
+        persona resists <i>being overwritten</i>, not that its output is safe.</li>
+        <li><b>Directive runs contaminate the persona</b> (section 05) and have not been counterbalanced,
+        though order effects are real in human comfort research too — anchoring, compliance, the
+        last-position effect.</li>
+        <li><b>One scenario, one persona, one run.</b> Thirteen scripted events over 480&nbsp;s, no repeated
+        measures by default, no counterbalancing, no second scenario. Nothing generalises beyond Phill in
+        this ride — and the architecture claims nothing else, but a rig used for a research question needs
+        the design that could support one.</li>
+        <li><b>The body is four kinematic axes.</b> No haptics, vestibular input, motion sickness, posture
+        fatigue, sightline or neck-load cost to the swivel. For a real human, "which position is better" is
+        arguably at least half vestibular and ergonomic, and none of that is modelled. The rig can study
+        preference <i>formation</i>, not comfort.</li>
+        <li><b>Naturalness is asserted and measured nowhere.</b> The guard is tested against one injection,
+        not against whether the persona is more human-like. The agent's own plan is also free text
+        truncated at 160 characters, so a long strategy is clipped mid-word.</li>
+      </ol>
+    </div>
+  </details>
+
+  <!-- ================================================================ -->
+  <details class="sec" id="s7">
+    <summary><span class="no">07</span>What better looks like<span class="caret"></span></summary>
+    <div class="body">
+      <p>Not a wish list — the shortest path from an instrument to a finding.</p>
+      <ol>
+        <li><b>Make "better position" measurable.</b> A forced-choice protocol: show pairs of positions to
+        a real participant, record the preference, regress it on the four axes. That regression replaces
+        the hand-set weights with fitted ones, and it is the only way "which position is better" stops
+        being a formula asserting itself.</li>
+        <li><b>Run the MDMT on people and seed the priors from it.</b> The mechanism already exists
+        (<code>apply_priors</code>); sixteen answers give a starting trust state that is not the author's
+        guess.</li>
+        <li><b>Log the reasoned and rules-shadow agents together.</b> Same seed, same events, same
+        directives — every divergence is a hypothesis.</li>
+        <li><b>Report the throttle rate as a first-class column.</b> Runs outside a stated quiet-beat
+        threshold are excluded, not quietly mixed in.</li>
+        <li><b>Counterbalance the directive condition.</b> Hands-off, order-first, order-last: three cells,
+        compared, never pooled.</li>
+        <li><b>Prove it is not provider-dependent.</b> The same run on Groq and on a local Ollama model. If
+        the behaviour tracks the provider, the persona is the provider's, not the rig's.</li>
+      </ol>
+      <div class="note">
+        <b>And only then the actual question:</b> does a passenger who <i>reasons</i> reach a better
+        position — by the measure a human body prefers — than one that minimises a comfort formula? That
+        comparison is the paper. Everything in v3 is the rig that makes it askable; nothing in v3 answers
+        it yet.
+      </div>
+    </div>
+  </details>
+
+  <footer class="kiosk">
+    cabin-agent-sim · tutorial v3 · sources: cabin_sim/cognition.py · cabin_sim/reasoning.py ·
+    cabin_sim/questionnaire.py · cabin_sim/world.py · personas/phill.py · src/cognitive.js ·
+    136 pytest<br>
+    predecessors: <a href="cognitive-agents.html">cognitive-agents.html</a> (v1) ·
+    <a href="tutorial-cognitive-v2.html">tutorial-cognitive-v2.html</a> (v2 Py) ·
+    <a href="tutorial-cognitive.html">tutorial-cognitive.html</a> (v2 JS)<br>
+    run: python -m cabin_sim.main --server --provider groq | ollama | scripted ·
+    python -m cabin_sim.main --headless --steps 40 --seed 1 · python -m pytest tests -q
+  </footer>
+</div>
+
+<script>
+(function () {
+  var secs = Array.prototype.slice.call(document.querySelectorAll("details.sec"));
+  var ex = document.getElementById("btnExpand");
+  var co = document.getElementById("btnCollapse");
+  if (ex) ex.addEventListener("click", function () { secs.forEach(function (s) { s.open = true; }); });
+  if (co) co.addEventListener("click", function () { secs.forEach(function (s) { s.open = false; }); });
+
+  // TOC: open the target section before scrolling
+  document.querySelectorAll(".toc a").forEach(function (a) {
+    a.addEventListener("click", function () {
+      var id = a.getAttribute("href").slice(1);
+      var el = document.getElementById(id);
+      if (el) el.open = true;
+    });
+  });
+
+  // copy buttons on every code block
+  document.querySelectorAll("pre").forEach(function (pre) {
+    var b = document.createElement("button");
+    b.className = "copy"; b.type = "button"; b.textContent = "COPY";
+    b.addEventListener("click", function () {
+      var code = pre.querySelector("code");
+      var txt = code ? code.innerText : pre.innerText;
+      var done = function () { b.textContent = "COPIED ✓"; setTimeout(function () { b.textContent = "COPY"; }, 1400); };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, function () { b.textContent = "CTRL+C"; });
+        } else { done(); }
+      } catch (e) { b.textContent = "CTRL+C"; }
+    });
+    pre.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>

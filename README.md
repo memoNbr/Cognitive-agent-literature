@@ -18,6 +18,7 @@ docs/                          -- standalone knowledge pages (self-contained HTM
   cognitive-agents.html        -- v1: cognitive agents knowledge page
   tutorial-cognitive.html      -- v2: BDI cognitive architecture tutorial (cognitive.js)
   tutorial-cognitive-v2.html   -- v2 (Python): BDI cognitive architecture tutorial (cabin_sim/cognition.py, Python-authoritative)
+  tutorial-cognitive-v3.html   -- v3: the reasoned passenger - what changed in the mind, what it is now, what could be better
 editions/                      -- one file per weekly edition
   2026-W38-cognitive-agents.md -- seed edition (report on cognitive agents, Sep 2026)
 tools/remind-weekly.ps1        -- the weekly reminder script (Windows scheduled task)
@@ -30,6 +31,7 @@ tools/remind-weekly.ps1        -- the weekly reminder script (Windows scheduled 
 | v1 | [docs/cognitive-agents.html](docs/cognitive-agents.html) | 2026-09-18 | Framing, CoALA, BDI, SDKs, standards, evals, safety, cabin sim |
 | v2 (JS) | [docs/tutorial-cognitive.html](docs/tutorial-cognitive.html) | 2026-09-22 | BDI architecture tutorial for `cognitive.js`: state S/PHILL, ROT/HGT tables, cognition loop, memory decay =0.004, trust & mood formulas, event timeline, `__EXPERIMENTER_CHAT__` hook, parameters |
 | v2 (Py) | [docs/tutorial-cognitive-v2.html](docs/tutorial-cognitive-v2.html) | 2026-09-24 | Python-authoritative BDI tutorial for `cabin_sim/cognition.py`: Mind class, step loop, memory, trust & mood, ride script, schema snapshot, experimenter chat, determinism, reasoning modes (Groq/Ollama/rules), parameters |
+| v3 | [docs/tutorial-cognitive-v3.html](docs/tutorial-cognitive-v3.html) | 2026-09-26 | The reasoned passenger: the research question, the 4 seat parameters + 3 affect variables with formulas, the rule-driven v2 mind vs the LLM reasoner (examine → reconsider → act, felt state, own thread of thought), the quiet beat vs honest speech degradation, the directive channel, the MDMT trust instrument, a commit timeline, and 9 honest limits |
 
 ## Weekly update log
 
