@@ -258,7 +258,21 @@
       <code>fit_gap = 0.31</code> and moves the seat 10&nbsp;mm, it has built a controller, not a person.
       Whether a real passenger tolerates a 31&nbsp;mm gap, forgets it, or blames the car depends on
       judgement under a moving context — which is the thing being modelled.</p>
-      <div class="warn">
+      <div class="warn" style="border-color:#C25A3C;background:rgba(194,90,60,.12)">
+    <b>⚠ DRAFT — NOT v3, AND NOT CURRENT. DO NOT BUILD ON THIS PAGE.</b><br><br>
+    This text describes the <b>previous</b> architecture. Since it was written, the mind has been
+    rebuilt: the LLM is now the only decision-maker, the hand-set comfort/trust formulas and the
+    BDI argmax have been removed from the production path, and a four-store CoALA memory loop
+    (working / episodic / semantic / procedural) has replaced the flat trace list. The parameter
+    section below, the trust formula, and the "what it is" section are all <b>superseded</b>.
+    <br><br>
+    The captain's instruction on 2026-09-26 was explicit: <i>do not commit this as v3, because we
+    definitely need more to improve.</i> A correct v3 can only be written after the next
+    architecture decisions are settled — in particular whether the published pressure anchors
+    belong in the seat prompts. Kept in the repository as a record, not as documentation.
+  </div>
+
+  <div class="warn">
         <b>Status, up front:</b> no human subject has been run through this yet. Every weight in the
         comfort and trust formulas is hand-set by the authors. What exists is an <i>instrument under
         construction</i> — a rig that can produce legitimate data the moment it is pointed at real
