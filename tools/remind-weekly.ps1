@@ -4,7 +4,9 @@
 #
 # The message includes the repo path, the newest edition, and how fresh it is.
 
-$repo = "C:\Users\Win11 Pro\Memo\cognitive-agent-literature"
+# Derived from this script's own location, so the repo works wherever it is
+# cloned - and so no individual's machine path ends up published in it.
+$repo = Split-Path -Parent $PSScriptRoot
 $repoUrl = "https://github.com/memoNbr/cognitive-agent-literature"
 
 $latest = Get-ChildItem "$repo\editions\*.md" | Sort-Object Name -Descending | Select-Object -First 1
