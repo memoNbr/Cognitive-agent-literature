@@ -22,6 +22,9 @@ docs/                          -- standalone knowledge pages (self-contained HTM
   coala-vs-ours-diagram.html    -- schematic: CoALA and ours as a whiteboard, side by side, with the
                                   verdict per row, the beat cycle with the missing learning arrow,
                                   the classic-blackboard lineage, and Mermaid source
+  coala-correlation.html         -- dark directed correlation: every CoALA component paired with ours by an
+                                  arrow labelled with the quality of the match, the five learning actions
+                                  resolved one by one, and what each difference costs the experiment
   backend-architecture.html      -- whiteboard map of the whole cabin-agent-sim backend: what the
                                   captain authors on disk, the Python process, the browser, one beat
                                   end to end, the chat path, and what is currently wrong
@@ -45,6 +48,7 @@ tools/remind-weekly.ps1        -- the weekly reminder script (Windows scheduled 
 | schematic | [docs/coala-vs-ours-diagram.html](docs/coala-vs-ours-diagram.html) | 2026-10-01 | The same comparison as a drawn schematic rather than prose: CoALA left, ours right, verdict per row. Adds the beat cycle with the absent learning arrow, the classic blackboard-architecture lineage (DENDRAL) that explains why CoALA is shaped the way it is, and Mermaid source. Every `file:line` opened and read before publishing. |
 | architecture | [docs/backend-architecture.html](docs/backend-architecture.html) | 2026-10-01 | How the cabin agent actually works, as three bands: what the captain authors on disk, the Python process, the browser. One beat end to end, the chat path precisely, and four things currently wrong — the persona's declared seat preference, the unwritten prompts, the confirmed prompt write-back, and the chat channel that instrumentation shares with stimulus. |
 | data flow | [docs/data-flow.html](docs/data-flow.html) | 2026-10-01 | The backend as a directed graph rather than a static picture. One beat down the spine in six steps, every arrow labelled with what is actually sent across it, the browser and authored files in the left lane, the model and hard limits in the right lane. The only arrow pointing backwards is episodic retrieval — the whole of what the agent remembers. Closes with the three arrows that are absent, and why each is absent. |
+| correlation | [docs/coala-correlation.html](docs/coala-correlation.html) | 2026-10-01 | Every component of CoALA paired with the cabin agent's counterpart by an arrow labelled with the quality of the match, with the paper retrieved and re-read rather than recalled. Resolves the paper's five learning actions one by one — one present, four absent — and corrects the earlier count that treated learning as a single item. Also records two divergences the earlier pages missed: retrieval is a *chosen* action in CoALA but automatic in ours, and the decision procedure is a component CoALA deliberately leaves unspecified while we close it by making the model the sole decider. |
 
 ## Weekly update log
 
