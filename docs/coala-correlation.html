@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoALA correlated to the cabin agent — component by component</title>
+<meta name="description" content="Every component of the CoALA framework paired with the part of the cabin agent that plays that role, with the correlation stated: what it maps to, how closely, and what the difference costs.">
+<style>
+  :root{
+    --bg:#16181d; --panel:#1e2128; --ink:#e9ebf2; --dim:#98a0b0;
+    --mint:#7fd4b8; --butter:#e8c96a; --blush:#e89aa0; --peri:#9fb4e8;
+    --lav:#c2a8e8; --peach:#f0b088; --slate:#7a8090;
+    --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1300px;margin:0 auto;padding:34px 26px 80px}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate)}
+  h1{margin:10px 0 8px;font-size:33px;line-height:1.08;letter-spacing:-.02em;color:var(--lav);font-weight:800}
+  h1 .i{color:var(--ink)}
+  h2{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--butter);margin:54px 0 14px;font-weight:700}
+  h2 .n{color:var(--ink)}
+  h3{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);margin:30px 0 12px;font-weight:700}
+  p{max-width:84ch;color:#cdd2dd}
+  code{font-family:var(--mono);font-size:.87em;background:#272b34;color:var(--ink);padding:1px 5px;border-radius:4px}
+  a{color:var(--lav)} b{color:var(--ink);font-weight:700}
+  figure{margin:0}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .cap{font-size:13.5px;color:var(--dim);margin:16px 0 0;max-width:90ch}
+  .cap b{color:var(--dim)}
+
+  .keys{display:flex;gap:16px;flex-wrap:wrap;margin:20px 0 0;padding-top:15px;border-top:1px solid #2c313b;font-size:13px;color:var(--dim)}
+  .keys span{display:flex;align-items:center;gap:7px}
+  .keys i{width:13px;height:13px;border-radius:3px;display:inline-block}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;font-size:13.5px}
+  th,td{padding:10px 11px;text-align:left;vertical-align:top;border-bottom:1px solid #262b33}
+  thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--butter);border-bottom:1.5px solid #3a4049}
+  tbody td{color:#c6ccd8}
+  td.coala{color:var(--peri);font-weight:600;white-space:nowrap}
+  td.ours{font-family:var(--mono);font-size:12px;color:var(--mint);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  .v{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:3px;border:1.5px solid currentColor;white-space:nowrap}
+  .v-same{color:var(--mint)} .v-near{color:var(--butter)} .v-none{color:var(--blush)} .v-ours{color:var(--lav)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(288px,1fr));gap:13px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid #2f343f;border-left:3px solid var(--slate);border-radius:10px;padding:14px 16px}
+  .card h4{margin:0 0 7px;font-family:var(--mono);font-size:12.5px;letter-spacing:.05em;color:var(--ink);font-weight:700;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+  .card p{margin:0 0 7px;font-size:13.8px;color:#c2c8d4}
+  .card p:last-child{margin-bottom:0}
+  .card .f{display:block;font-family:var(--mono);font-size:10.5px;color:var(--slate);margin-top:8px;line-height:1.55}
+  .card em{color:var(--dim);font-style:italic}
+  .k-same{border-left-color:var(--mint)} .k-near{border-left-color:var(--butter)}
+  .k-none{border-left-color:var(--blush)} .k-ours{border-left-color:var(--lav)}
+  .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase}
+
+  .note{max-width:88ch;margin:22px 0;padding:15px 19px;background:rgba(21,128,61,.06);border:1.5px solid var(--mint);font-size:14.5px;border-radius:10px}
+  .warn{max-width:88ch;margin:22px 0;padding:15px 19px;background:rgba(190,18,60,.06);border:1.5px solid var(--blush);font-size:14.5px;border-radius:10px}
+  .amber{max-width:88ch;margin:22px 0;padding:15px 19px;background:rgba(194,65,12,.06);border:1.5px solid var(--butter);font-size:14.5px;border-radius:10px}
+  footer{margin-top:56px;padding-top:16px;border-top:1px solid #2c313b;font-size:12.5px;color:var(--slate);line-height:1.75}
+  footer b{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kick">cognitive-agent-literature · correlation · coala ↔ cabin-agent-sim</div>
+<h1>Every CoALA component, <span class="i">paired with ours</span></h1>
+<p>
+  The paper is arXiv:2309.02427v3 (TMLR camera-ready, 15 Mar 2024), by Sumers, Yao, Narasimhan
+  and Griffiths. Every box on the left is a component <b>they define</b>, quoted or closely
+  paraphrased from §4. Every box on the right is a component that <b>we actually wrote</b>,
+  with the file it lives in. The arrow between them says which one plays that role, and how
+  faithfully.
+</p>
+<p>
+  Read the arrows as claims, not as decoration. <b>A green arrow is the paper's idea, kept.</b>
+  An amber one is ours but smaller. A red one with a cross is something they have and we do not.
+  A violet one is a decision they deliberately leave open and we closed.
+</p>
+
+<h2><span class="n">1</span> · The correlation graph</h2>
+
+<figure>
+<svg viewBox="0 0 1240 1180" role="img" aria-label="Two columns of boxes. Left: the CoALA framework's components. Right: the cabin agent's components. Arrows connect each CoALA component to its counterpart, labelled with the quality of the correspondence, and two CoALA learning actions have no counterpart and are marked absent.">
+<defs>
+  <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7fd4b8"/></marker>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8c96a"/></marker>
+  <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e89aa0"/></marker>
+  <marker id="v" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2a8e8"/></marker>
+  <marker id="x" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1,1 L9,9 M9,1 L1,9" stroke="#e89aa0" stroke-width="2.2" fill="none" stroke-linecap="round"/></marker>
+</defs>
+
+<!-- column headers -->
+<text x="300" y="40" font-family="Consolas,monospace" font-size="12" letter-spacing="2.4" fill="#9fb4e8" text-anchor="middle">COALA — the paper, §4</text>
+<text x="940" y="40" font-family="Consolas,monospace" font-size="12" letter-spacing="2.4" fill="#7fd4b8" text-anchor="middle">CABIN AGENT — what we wrote</text>
+
+<!-- ============ LEFT: CoALA ============ -->
+<!-- memory group -->
+<rect x="40" y="60" width="520" height="330" rx="12" fill="#1b1e25" stroke="#2f343f" stroke-width="1.5"/>
+<text x="58" y="84" font-family="Consolas,monospace" font-size="10.5" letter-spacing="1.6" fill="#6f7787">§4.1 MEMORY</text>
+
+<rect x="58" y="96" width="230" height="62" rx="9" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+<text x="74" y="118" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">Working memory</text>
+<text x="74" y="134" font-family="system-ui" font-size="11" fill="#a8b0c0">persists across LLM calls;</text>
+<text x="74" y="149" font-family="system-ui" font-size="11" fill="#a8b0c0">"the central hub"</text>
+
+<rect x="58" y="170" width="230" height="62" rx="9" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+<text x="74" y="192" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">Episodic memory</text>
+<text x="74" y="208" font-family="system-ui" font-size="11" fill="#a8b0c0">experience from earlier</text>
+<text x="74" y="223" font-family="system-ui" font-size="11" fill="#a8b0c0">decision cycles</text>
+
+<rect x="58" y="244" width="230" height="62" rx="9" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+<text x="74" y="266" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">Semantic memory</text>
+<text x="74" y="282" font-family="system-ui" font-size="11" fill="#a8b0c0">knowledge of the world</text>
+<text x="74" y="297" font-family="system-ui" font-size="11" fill="#a8b0c0">and of itself</text>
+
+<rect x="58" y="318" width="484" height="58" rx="9" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+<text x="74" y="340" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">Procedural memory</text>
+<text x="74" y="356" font-family="system-ui" font-size="11" fill="#a8b0c0">implicit (LLM weights) + explicit (agent code). Must be initialised by the designer;</text>
+<text x="74" y="370" font-family="system-ui" font-size="11" fill="#a8b0c0">writing here risks letting the agent "subvert its designers' intentions".</text>
+
+<!-- action space group -->
+<rect x="40" y="410" width="520" height="356" rx="12" fill="#1b1e25" stroke="#2f343f" stroke-width="1.5"/>
+<text x="58" y="434" font-family="Consolas,monospace" font-size="10.5" letter-spacing="1.6" fill="#6f7787">§4.2–4.5 ACTION SPACE</text>
+
+<rect x="58" y="446" width="230" height="56" rx="9" fill="#252932" stroke="#f0b088" stroke-width="1.8"/>
+<text x="74" y="468" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#f0b088">Grounding actions</text>
+<text x="74" y="486" font-family="system-ui" font-size="11" fill="#a8b0c0">external: touch the world</text>
+
+<rect x="58" y="514" width="230" height="56" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="74" y="536" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">Retrieval actions</text>
+<text x="74" y="554" font-family="system-ui" font-size="11" fill="#a8b0c0">read long-term → working</text>
+
+<rect x="58" y="582" width="230" height="56" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="74" y="604" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">Reasoning actions</text>
+<text x="74" y="622" font-family="system-ui" font-size="11" fill="#a8b0c0">read AND write working mem.</text>
+
+<rect x="58" y="658" width="484" height="106" rx="9" fill="#252932" stroke="#e89aa0" stroke-width="1.8"/>
+<text x="74" y="680" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#e89aa0">Learning actions</text>
+<text x="74" y="697" font-family="system-ui" font-size="10.5" fill="#98a0b0">write to long-term memory — the paper names five:</text>
+<text x="74" y="717" font-family="system-ui" font-size="11" fill="#a8b0c0">① episodic &nbsp; ② semantic &nbsp; ③ LLM parameters</text>
+<text x="74" y="734" font-family="system-ui" font-size="11" fill="#a8b0c0">④ grounding code &nbsp; ⑤ reasoning code</text>
+<text x="74" y="755" font-family="system-ui" font-size="10.5" fill="#6f7787">⑤ is implemented by nobody, they say — "risky for functionality and alignment".</text>
+
+<!-- decision group -->
+<rect x="40" y="786" width="520" height="180" rx="12" fill="#1b1e25" stroke="#2f343f" stroke-width="1.5"/>
+<text x="58" y="810" font-family="Consolas,monospace" font-size="10.5" letter-spacing="1.6" fill="#6f7787">§4.6 DECISION MAKING</text>
+
+<rect x="58" y="822" width="150" height="54" rx="9" fill="#252932" stroke="#c2a8e8" stroke-width="1.8"/>
+<text x="74" y="844" font-family="Consolas,monospace" font-size="11.5" font-weight="700" fill="#c2a8e8">Proposal</text>
+<text x="74" y="862" font-family="system-ui" font-size="10.5" fill="#a8b0c0">generate candidates</text>
+
+<rect x="222" y="822" width="150" height="54" rx="9" fill="#252932" stroke="#c2a8e8" stroke-width="1.8"/>
+<text x="238" y="844" font-family="Consolas,monospace" font-size="11.5" font-weight="700" fill="#c2a8e8">Evaluation</text>
+<text x="238" y="862" font-family="system-ui" font-size="10.5" fill="#a8b0c0">assign each a value</text>
+
+<rect x="386" y="822" width="156" height="54" rx="9" fill="#252932" stroke="#c2a8e8" stroke-width="1.8"/>
+<text x="402" y="844" font-family="Consolas,monospace" font-size="11.5" font-weight="700" fill="#c2a8e8">Selection</text>
+<text x="402" y="862" font-family="system-ui" font-size="10.5" fill="#a8b0c0">argmax / softmax / vote</text>
+
+<text x="58" y="902" font-family="system-ui" font-size="11" fill="#6f7787">The paper leaves this procedure open — "effectively the top-level or 'main' agent program".</text>
+<text x="58" y="920" font-family="system-ui" font-size="11" fill="#6f7787">Most real agents collapse it to one LLM call that proposes a single action.</text>
+<text x="58" y="942" font-family="system-ui" font-size="11" fill="#98a0b0">It is the part of CoALA that is a framework, not a specification.</text>
+
+<!-- ============ ARROWS ============ -->
+<g fill="none" stroke-width="1.9">
+  <!-- working memory -->
+  <path d="M288,127 L700,127" stroke="#7fd4b8" marker-end="url(#g)"/>
+  <!-- episodic -->
+  <path d="M288,201 L700,201" stroke="#7fd4b8" marker-end="url(#g)"/>
+  <!-- semantic -->
+  <path d="M288,275 L700,275" stroke="#e8c96a" marker-end="url(#a)"/>
+  <!-- procedural -->
+  <path d="M288,347 L700,347" stroke="#7fd4b8" marker-end="url(#g)"/>
+  <!-- grounding -->
+  <path d="M288,474 L700,474" stroke="#e8c96a" marker-end="url(#a)"/>
+  <!-- retrieval -->
+  <path d="M288,542 L700,542" stroke="#7fd4b8" marker-end="url(#g)"/>
+  <!-- reasoning -->
+  <path d="M288,610 L700,610" stroke="#7fd4b8" marker-end="url(#g)"/>
+  <!-- learning ①: drops out of the bottom of the learning box, then runs right -->
+  <path d="M300,764 L300,790 L700,790" stroke="#7fd4b8" marker-end="url(#g)"/>
+  <!-- learning ②: a short dashed stub to a cross. Absent, not far away. -->
+  <path d="M542,704 L578,704" stroke="#e89aa0" stroke-width="1.9" stroke-dasharray="6 4" marker-end="url(#x)"/>
+  <!-- decision: collapsed into one call -->
+  <path d="M542,849 L676,849 L676,1010 L700,1010" stroke="#c2a8e8" marker-end="url(#v)"/>
+</g>
+
+<!-- arrow labels -->
+<text x="494" y="118" font-family="Consolas,monospace" font-size="10" fill="#7fd4b8" text-anchor="middle">kept</text>
+<text x="494" y="192" font-family="Consolas,monospace" font-size="10" fill="#7fd4b8" text-anchor="middle">kept</text>
+<text x="494" y="266" font-family="Consolas,monospace" font-size="10" fill="#e8c96a" text-anchor="middle">read-only</text>
+<text x="494" y="338" font-family="Consolas,monospace" font-size="10" fill="#7fd4b8" text-anchor="middle">kept, incl. the caution</text>
+<text x="494" y="465" font-family="Consolas,monospace" font-size="10" fill="#e8c96a" text-anchor="middle">widened</text>
+<text x="494" y="533" font-family="Consolas,monospace" font-size="10" fill="#7fd4b8" text-anchor="middle">kept</text>
+<text x="494" y="601" font-family="Consolas,monospace" font-size="10" fill="#7fd4b8" text-anchor="middle">kept</text>
+<text x="440" y="782" font-family="Consolas,monospace" font-size="10" fill="#7fd4b8">① present — experience stored</text>
+<text x="586" y="696" font-family="Consolas,monospace" font-size="10" fill="#e89aa0">② absent</text>
+<text x="584" y="868" font-family="Consolas,monospace" font-size="10" fill="#c2a8e8">all three, collapsed</text>
+<text x="584" y="882" font-family="Consolas,monospace" font-size="10" fill="#c2a8e8">into one call</text>
+
+<!-- ============ RIGHT: ours ============ -->
+<rect x="700" y="96" width="230" height="62" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="716" y="118" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">WorkingMemory</text>
+<text x="716" y="134" font-family="Consolas,monospace" font-size="10" fill="#7a8090">memory.py:400 · compose() :423</text>
+<text x="716" y="150" font-family="system-ui" font-size="11" fill="#a8b0c0">the model's whole input</text>
+
+<rect x="700" y="170" width="230" height="62" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="716" y="192" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">EpisodicMemory</text>
+<text x="716" y="208" font-family="Consolas,monospace" font-size="10" fill="#7a8090">memory.py:196 · retrieve() :286</text>
+<text x="716" y="224" font-family="system-ui" font-size="11" fill="#a8b0c0">budget 6 per beat, decays</text>
+
+<rect x="700" y="244" width="230" height="62" rx="9" fill="#252932" stroke="#e8c96a" stroke-width="1.8"/>
+<text x="716" y="266" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#e8c96a">SemanticMemory</text>
+<text x="716" y="282" font-family="Consolas,monospace" font-size="10" fill="#7a8090">memory.py:87 · write() :182</text>
+<text x="716" y="298" font-family="system-ui" font-size="11" fill="#a8b0c0">8 prose files · write() = False</text>
+
+<rect x="700" y="318" width="500" height="58" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="716" y="340" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">ProceduralMemory</text>
+<text x="716" y="356" font-family="Consolas,monospace" font-size="10" fill="#7a8090">memory.py:344 · AXES/KINDS :358</text>
+<text x="716" y="371" font-family="system-ui" font-size="11" fill="#a8b0c0">the action vocabulary. Never written by the model — the paper's caution, taken literally.</text>
+
+<rect x="700" y="446" width="500" height="56" rx="9" fill="#252932" stroke="#e8c96a" stroke-width="1.8"/>
+<text x="716" y="468" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#e8c96a">actions.py + world.py</text>
+<text x="716" y="486" font-family="Consolas,monospace" font-size="10" fill="#7a8090">the executable whitelist, then the clamps</text>
+<text x="716" y="496" font-family="system-ui" font-size="10.5" fill="#a8b0c0">4 axes · vending · table · stay · stand/sit</text>
+
+<rect x="700" y="514" width="230" height="56" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="716" y="536" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">retrieval</text>
+<text x="716" y="554" font-family="Consolas,monospace" font-size="10" fill="#7a8090">inside compose()</text>
+<text x="716" y="566" font-family="system-ui" font-size="10.5" fill="#a8b0c0">automatic, not chosen</text>
+
+<rect x="700" y="582" width="500" height="56" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="716" y="604" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">decide()</text>
+<text x="716" y="622" font-family="Consolas,monospace" font-size="10" fill="#7a8090">reasoning.py:453</text>
+<text x="716" y="633" font-family="system-ui" font-size="10.5" fill="#a8b0c0">the only place the model is asked anything</text>
+
+<rect x="700" y="762" width="500" height="56" rx="9" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="716" y="784" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">store one episode</text>
+<text x="716" y="802" font-family="Consolas,monospace" font-size="10" fill="#7a8090">memory.py:437 absorb()</text>
+<text x="716" y="813" font-family="system-ui" font-size="10.5" fill="#a8b0c0">learning ① — experience stored, as the paper describes</text>
+
+<rect x="700" y="976" width="500" height="72" rx="9" fill="#252932" stroke="#c2a8e8" stroke-width="1.8"/>
+<text x="716" y="998" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#c2a8e8">the model decides</text>
+<text x="716" y="1016" font-family="Consolas,monospace" font-size="10" fill="#7a8090">cognition.py:821 · the branch at :893</text>
+<text x="716" y="1032" font-family="system-ui" font-size="11" fill="#a8b0c0">one call proposes and evaluates together; the rules argmax</text>
+<text x="716" y="1046" font-family="system-ui" font-size="11" fill="#a8b0c0">below :893 never runs while a model is present.</text>
+
+<!-- the absences, stated in the diagram -->
+<rect x="600" y="1076" width="600" height="94" rx="10" fill="#241a1e" stroke="#e89aa0" stroke-width="1.8" stroke-dasharray="7 5"/>
+<text x="620" y="1100" font-family="Consolas,monospace" font-size="11.5" letter-spacing=".6" font-weight="700" fill="#e89aa0">② ③ ④ ⑤ — FOUR LEARNING ACTIONS WITH NO COUNTERPART</text>
+<text x="620" y="1121" font-family="system-ui" font-size="12" fill="#c6ccd8">② semantic insight · ③ fine-tuning the LLM · ④ new grounding code · ⑤ new reasoning code</text>
+<text x="620" y="1140" font-family="system-ui" font-size="12" fill="#c6ccd8">memory.py:182 <tspan font-family="Consolas,monospace" fill="#e89aa0">write()</tspan> returns <tspan font-family="Consolas,monospace" fill="#e89aa0">False</tspan>. There is no training path in the codebase at all.</text>
+<text x="620" y="1159" font-family="system-ui" font-size="11" fill="#6f7787">One of these four is a considered refusal. Three are staging.</text>
+</svg>
+</figure>
+
+<p class="cap">
+  <b>Reading it.</b> Left is the paper, right is us, and every arrow is a claim about a
+  correspondence. The two arrows that do not land on a box are the interesting ones: one dashed
+  red arrow to a cross for <b>semantic learning</b>, and the dashed box naming the four learning
+  actions we have no counterpart for at all.
+</p>
+
+<div class="keys">
+  <span><i style="background:#7fd4b8"></i> kept — the paper's idea, faithfully</span>
+  <span><i style="background:#e8c96a"></i> ours, but smaller or narrower</span>
+  <span><i style="background:#e89aa0"></i> absent — we do not have it</span>
+  <span><i style="background:#c2a8e8"></i> a choice they leave open, we closed</span>
+  <span><i style="background:#9fb4e8"></i> CoALA component</span>
+  <span><i style="background:#f0b088"></i> external, touches the world</span>
+</div>
+
+<h2><span class="n">2</span> · The whole table, and the arithmetic</h2>
+
+<table>
+  <thead>
+    <tr><th>COALA</th><th>OURS</th><th>CORRELATION</th><th>WHAT THE DIFFERENCE COSTS</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="coala">§4.1 Working memory</td><td class="ours">memory.py:400, :423</td>
+      <td><span class="v v-same">kept</span></td>
+      <td>Nothing. Same definition, same central-hub role. This is the component we match most exactly.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.1 Episodic memory</td><td class="ours">memory.py:196, :286</td>
+      <td><span class="v v-same">kept</span></td>
+      <td>Nothing structural. Ours is bounded at six per beat and decays; theirs is open-ended. Ours is the smaller implementation of the same idea.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.1 Semantic memory</td><td class="ours">memory.py:87, :143</td>
+      <td><span class="v v-near">read-only</span></td>
+      <td>The paper explicitly allows writing here and names it the <i>safe</i> learning action, citing Reflexion. We read only. That is the omission your last question was about.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.1 Procedural memory</td><td class="ours">memory.py:344, :358</td>
+      <td><span class="v v-same">kept</span></td>
+      <td>Nothing — and this is the one place we are <i>more</i> faithful than most published agents. They warn it "can subvert the designer's intentions"; we never expose a write path at all.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.2 Grounding actions</td><td class="ours">actions.py, world.py</td>
+      <td><span class="v v-near">widened</span></td>
+      <td>The paper says only "whatever the environment permits". We have eight action kinds and hard gates — <code>stand</code> is refused at speed. Ours is far more specified than the framework asks for.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.3 Retrieval actions</td><td class="ours">memory.py:423</td>
+      <td><span class="v v-same">kept</span></td>
+      <td>One real difference: the paper treats retrieval as a <i>chosen</i> action within the space. Ours is automatic — it happens inside <code>compose()</code> and the model never elects to retrieve. Ours is therefore not a free choice.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.4 Reasoning actions</td><td class="ours">reasoning.py:453</td>
+      <td><span class="v v-same">kept</span></td>
+      <td>Nothing. Same definition: reads working memory, writes working memory, via the LLM.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.5 Learning ① episodic</td><td class="ours">memory.py:437</td>
+      <td><span class="v v-same">kept</span></td>
+      <td>Nothing. Storing experience each cycle is learning action ① and we do it every beat. <b>This is more than I previously credited.</b></td>
+    </tr>
+    <tr>
+      <td class="coala">§4.5 Learning ② semantic</td><td class="ours">memory.py:182</td>
+      <td><span class="v v-none">absent</span></td>
+      <td>The paper calls this the <i>safe</i> one and gives Reflexion as the example. Ours returns <code>False</code>. The comment says "not yet" — staging, not a principle.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.5 Learning ③ parameters</td><td class="ours">—</td>
+      <td><span class="v v-none">absent</span></td>
+      <td>Fine-tuning the LLM. There is no training path in the codebase, so this cannot occur by accident.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.5 Learning ④ grounding code</td><td class="ours">—</td>
+      <td><span class="v v-none">absent</span></td>
+      <td>Voyager-style skill library. We have no mechanism to add an action kind, which is what makes the capability set statable.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.5 Learning ⑤ reasoning code</td><td class="ours">—</td>
+      <td><span class="v v-none">absent</span></td>
+      <td>Rewriting your own prompt templates. Also absent by construction.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.6 Proposal</td><td class="ours" rowspan="3">cognition.py:821</td>
+      <td rowspan="3"><span class="v v-ours">ours</span></td>
+      <td rowspan="3">The paper <b>deliberately does not specify</b> this — it calls the decision procedure "the top-level or 'main' agent program", and notes most agents collapse proposal+evaluation+selection into one LLM call. <b>We collapse it too,</b> and go further: we deleted the rules argmax, so there is no second path.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.6 Evaluation</td>
+      <td>Implicit. The model evaluates its own candidates in the same completion that generated them.</td>
+    </tr>
+    <tr>
+      <td class="coala">§4.6 Selection</td>
+      <td>Implicit, and generative rather than argmax. The paper allows argmax, softmax or majority vote; we allow none of these.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>The arithmetic, stated plainly.</b> Ten components in CoALA's framework. <b>Five we keep
+  faithfully</b> — working memory, episodic memory, procedural memory, retrieval, reasoning —
+  and a sixth, episodic learning, which I under-counted until I read §4.5 again. <b>Two we keep in
+  reduced form</b> — semantic memory is read-only, grounding is far more specified than the
+  paper requires. <b>Four learning actions we do not have</b>, of which one is a considered
+  refusal and three are staging. <b>One component is ours alone</b> — the decision procedure,
+  which the paper leaves open and we close by making the model the sole decider.
+</div>
+
+<h2><span class="n">3</span> · The four components that match exactly</h2>
+
+<p>
+  These are worth reading closely, because "we follow CoALA" is a claim that is usually made
+  loosely and is rarely true in the details.
+</p>
+
+<div class="cards">
+  <div class="card k-same">
+    <h4>Working memory <span class="tag v-same">kept</span></h4>
+    <p>The paper is unusually specific: <em>"a data structure that persists across LLM calls"</em>,
+    whose subset is synthesised into each prompt and into which output is parsed back, and which
+    it calls <em>"the central hub connecting different components."</em></p>
+    <p>Ours does exactly this. <code>compose()</code> returns five parts; <code>absorb()</code>
+    parses the model's JSON back into variables.</p>
+    <span class="f">memory.py:400, :423, :437</span>
+  </div>
+  <div class="card k-same">
+    <h4>Episodic memory <span class="tag v-same">kept</span></h4>
+    <p>Paper: experience from earlier decision cycles, retrieved during planning, and — note —
+    <em>writable as a form of learning</em>. Ours stores one episode per beat and retrieves six.</p>
+    <p>The decay and the budget are ours, not theirs. So is the fact that we never consolidate.</p>
+    <span class="f">memory.py:196, :286, :437</span>
+  </div>
+  <div class="card k-same">
+    <h4>Procedural memory <span class="tag v-same">kept</span></h4>
+    <p>Paper: implicit weights plus explicit code, <em>"must be initialized by the designer"</em>,
+    and writing is <em>"significantly riskier … can subvert its designers' intentions."</em></p>
+    <p>Ours holds only the action vocabulary, and no write path exists. We took the warning as a
+    design constraint rather than a caution to note.</p>
+    <span class="f">memory.py:344 · AXES/KINDS :358</span>
+  </div>
+  <div class="card k-same">
+    <h4>Reasoning actions <span class="tag v-same">kept</span></h4>
+    <p>Paper: reasoning <em>"reads from and writes to working memory"</em>, and is the only action
+    that does both — retrieval only reads, learning only writes to long-term.</p>
+    <p>Our <code>decide()</code> is that action and nothing else. This is the cleanest single
+    correspondence in the system.</p>
+    <span class="f">reasoning.py:453</span>
+  </div>
+</div>
+
+<h2><span class="n">4</span> · The three differences that actually matter</h2>
+
+<p>
+  Everything below is a place where we are not simply "implementing CoALA", and in each case the
+  difference has a consequence for your experiment rather than being a stylistic choice.
+</p>
+
+<div class="cards">
+  <div class="card k-near">
+    <h4>Retrieval is automatic here <span class="tag v-near">divergence</span></h4>
+    <p>In CoALA, retrieval is an <b>action in the space</b> — something the agent may choose to do,
+    subject to the same decision procedure as everything else. That is why they call it an action
+    at all.</p>
+    <p>In ours, retrieval happens <b>before</b> the decision, inside <code>compose()</code>. The
+    model never elects whether to remember. So the agent cannot decide to look something up, and
+    cannot decide not to.</p>
+    <p><em>Consequence:</em> we cannot study the retrieval decision, only retrieval's effect.</p>
+    <span class="f">memory.py:423 · retrieval is a fixed step, not a chosen action</span>
+  </div>
+  <div class="card k-ours">
+    <h4>The decision procedure is closed, not specified <span class="tag v-ours">ours</span></h4>
+    <p>The paper is explicit that it declines to specify this, and that most real agents collapse
+    proposal, evaluation and selection into a single LLM call.</p>
+    <p>We collapse it into one call <b>and delete the alternative</b>. Line 893 returns before the
+    rules argmax can run. So there is exactly one decider, ever.</p>
+    <p><em>Consequence:</em> the decision procedure is not a variable we can ablate. We cannot
+    compare "LLM decides" against "rules decide" inside one run.</p>
+    <span class="f">cognition.py:821, :893</span>
+  </div>
+  <div class="card k-none">
+    <h4>Learning stops at ① <span class="tag v-none">absent</span></h4>
+    <p>Of the paper's five learning actions we perform exactly one — storing experience. The paper
+    is explicit that ② semantic is the <i>safe</i> one, and gives Reflexion as the working
+    example.</p>
+    <p>So our agent can remember that beat 34 was bad. It cannot conclude "therefore stop doing
+    X." That is the honest boundary.</p>
+    <span class="f">memory.py:182 returns False · no training path exists</span>
+  </div>
+</div>
+
+<div class="amber">
+  <b>A correction to what I told you earlier.</b> I previously scored "learning" as a single
+  absent item. Reading §4.5 properly, CoALA names <b>five</b> learning actions, and we do the first
+  one — storing an episode each beat is learning ①, described in the paper's own terms. So the
+  correct statement is <b>one of five present, not zero of one</b>. The conclusion you drew is
+  unchanged; the accounting was wrong, and it was wrong in a way that flattered us.
+</div>
+
+<div class="warn">
+  <b>And the one that is a considered refusal, stated as such.</b> Learning ⑤ — the agent
+  rewriting its own reasoning code — is not implemented by any agent the authors know of, and they
+  call it risky for both functionality and alignment. We match that judgement. Our refusal is
+  real. The other three absences are staging decisions, and should not be described as principles.
+</div>
+
+<footer>
+  cognitive-agent-literature · correlation · 2026-10-01 ·
+  <b>CoALA source: arXiv:2309.02427v3</b>, Sumers, Yao, Narasimhan &amp; Griffiths, TMLR camera-ready,
+  15 Mar 2024 — §4.1 memory, §4.2 grounding, §4.3 retrieval, §4.4 reasoning, §4.5 learning,
+  §4.6 decision making. Retrieved and read on 2026-10-01.
+  <b>Ours: every file:line opened and confirmed in the cabin-agent-sim working tree.</b>
+  Companion to <a href="data-flow.html">data-flow.html</a>,
+  <a href="backend-architecture.html">backend-architecture.html</a>,
+  <a href="coala-vs-ours-diagram.html">coala-vs-ours-diagram.html</a> and
+  <a href="tutorial-cognitive-v3.html">tutorial-cognitive-v3.html</a>
+</footer>
+
+</div>
+</body>
+</html>
