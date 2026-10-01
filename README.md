@@ -19,9 +19,12 @@ docs/                          -- standalone knowledge pages (self-contained HTM
   tutorial-cognitive.html      -- v2: BDI cognitive architecture tutorial (cognitive.js)
   tutorial-cognitive-v2.html   -- v2 (Python): BDI cognitive architecture tutorial (cabin_sim/cognition.py, Python-authoritative)
   tutorial-cognitive-v3.html   -- v3: CoALA vs our cabin agent - side-by-side mapping with overlap/diverge/absent verdicts, our code walkthrough, terminology, and what is ours rather than the literature's
-  coala-vs-ours-diagram.html    -- schematic: CoALA and ours as a blackboard, side by side, with the
+  coala-vs-ours-diagram.html    -- schematic: CoALA and ours as a whiteboard, side by side, with the
                                   verdict per row, the beat cycle with the missing learning arrow,
                                   the classic-blackboard lineage, and Mermaid source
+  backend-architecture.html      -- whiteboard map of the whole cabin-agent-sim backend: what the
+                                  captain authors on disk, the Python process, the browser, one beat
+                                  end to end, the chat path, and what is currently wrong
 editions/                      -- one file per weekly edition
   2026-W38-cognitive-agents.md -- seed edition (report on cognitive agents, Sep 2026)
 tools/remind-weekly.ps1        -- the weekly reminder script (Windows scheduled task)
@@ -36,6 +39,7 @@ tools/remind-weekly.ps1        -- the weekly reminder script (Windows scheduled 
 | v2 (Py) | [docs/tutorial-cognitive-v2.html](docs/tutorial-cognitive-v2.html) | 2026-09-24 | Python-authoritative BDI tutorial for `cabin_sim/cognition.py`: Mind class, step loop, memory, trust & mood, ride script, schema snapshot, experimenter chat, determinism, reasoning modes (Groq/Ollama/rules), parameters |
 | v3 | [docs/tutorial-cognitive-v3.html](docs/tutorial-cognitive-v3.html) | 2026-09-28 | CoALA vs the cabin agent: the four memory systems mapped to ours with an explicit verdict per component (4 overlap, 1 diverges, 2 simplified, 1 absent), the real code for one decision beat, retrieval scoring where we contradict Generative Agents, a terminology table, and the three points that are ours rather than the literature's. Supersedes the earlier draft. |
 | schematic | [docs/coala-vs-ours-diagram.html](docs/coala-vs-ours-diagram.html) | 2026-10-01 | The same comparison as a drawn schematic rather than prose: CoALA left, ours right, verdict per row. Adds the beat cycle with the absent learning arrow, the classic blackboard-architecture lineage (DENDRAL) that explains why CoALA is shaped the way it is, and Mermaid source. Every `file:line` opened and read before publishing. |
+| architecture | [docs/backend-architecture.html](docs/backend-architecture.html) | 2026-10-01 | How the cabin agent actually works, as three bands: what the captain authors on disk, the Python process, the browser. One beat end to end, the chat path precisely, and four things currently wrong — the persona's declared seat preference, the unwritten prompts, the confirmed prompt write-back, and the chat channel that instrumentation shares with stimulus. |
 
 ## Weekly update log
 
