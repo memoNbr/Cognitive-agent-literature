@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who talks to whom — the cabin agent, as a directed flow</title>
+<meta name="description" content="A directed diagram of the cabin-agent-sim backend: which component sends what to which, in what order, over one beat. Dark, pastel, arrow-labelled.">
+<style>
+  :root{
+    --bg:#16181d; --panel:#1e2128; --panel2:#252932; --ink:#e9ebf2; --dim:#98a0b0;
+    --mint:#7fd4b8; --butter:#e8c96a; --blush:#e89aa0; --peri:#9fb4e8;
+    --lav:#c2a8e8; --peach:#f0b088; --slate:#7a8090;
+    --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1260px;margin:0 auto;padding:34px 26px 80px}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate)}
+  h1{margin:10px 0 8px;font-size:33px;line-height:1.08;letter-spacing:-.02em;color:var(--lav);font-weight:800}
+  h1 .i{color:var(--ink)}
+  h2{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--butter);margin:52px 0 12px;font-weight:700}
+  h2 .n{color:var(--ink)}
+  p{max-width:82ch;color:#cdd2dd}
+  code{font-family:var(--mono);font-size:.87em;background:#272b34;color:var(--ink);padding:1px 5px;border-radius:4px}
+  a{color:var(--lav)}
+  b{color:var(--ink);font-weight:700}
+  figure{margin:0}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .cap{font-size:13.5px;color:var(--dim);margin:14px 0 0;max-width:88ch}
+  .cap b{color:var(--dim)}
+
+  .keys{display:flex;gap:16px;flex-wrap:wrap;margin:22px 0 0;padding-top:16px;border-top:1px solid #2c313b;font-size:13px;color:var(--dim)}
+  .keys span{display:flex;align-items:center;gap:7px}
+  .keys i{width:13px;height:13px;border-radius:3px;display:inline-block}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:13px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid #2f343f;border-left:3px solid var(--slate);border-radius:10px;padding:14px 16px}
+  .card h3{margin:0 0 6px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--ink);font-weight:700}
+  .card p{margin:0;font-size:14px;color:#c2c8d4}
+  .card .f{display:block;font-family:var(--mono);font-size:10.5px;color:var(--slate);margin-top:6px}
+  .c-mint{border-left-color:var(--mint)} .c-butter{border-left-color:var(--butter)}
+  .c-blush{border-left-color:var(--blush)} .c-peri{border-left-color:var(--peri)}
+  .c-lav{border-left-color:var(--lav)}   .c-peach{border-left-color:var(--peach)}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;font-size:14px}
+  th,td{padding:9px 11px;text-align:left;vertical-align:top}
+  thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--butter);border-bottom:1.5px solid #3a4049}
+  tbody td{border-bottom:1px solid #262b33;color:#c6ccd8}
+  tbody td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--mint)}
+  tbody td.neg{color:var(--blush)} tbody td.pos{color:var(--mint)}
+  footer{margin-top:54px;padding-top:16px;border-top:1px solid #2c313b;font-size:12.5px;color:var(--slate);line-height:1.75}
+  footer b{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kick">cabin-agent-sim · directed flow · who sends what to whom</div>
+<h1>Who talks to whom <span class="i">in the cabin agent</span></h1>
+<p>
+  One beat, top to bottom. Every arrow is labelled with <b>what is actually sent</b>, and every
+  box carries the file it lives in. Read it downward; the one arrow that goes <i>back up</i> is
+  the only thing in this system that remembers anything.
+</p>
+
+<figure>
+<svg viewBox="70 108 1170 1120" role="img" aria-label="A directed flow diagram of one decision beat in the cabin agent, from the ticker through compose, ask, decide, validate and store, with the browser on the left, the model on the right, and the authored files feeding in.">
+<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#8b93a5"/>
+  </marker>
+  <marker id="ahm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#7fd4b8"/>
+  </marker>
+  <marker id="ahl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#c2a8e8"/>
+  </marker>
+  <marker id="ahp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#f0b088"/>
+  </marker>
+  <marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#e8c96a"/>
+  </marker>
+  <marker id="ahx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#e89aa0"/>
+  </marker>
+</defs>
+
+<!-- ============ SPINE ============ -->
+<g>
+  <rect x="470" y="150" width="320" height="74" rx="12" fill="#1e2128" stroke="#9fb4e8" stroke-width="2"/>
+  <text x="490" y="176" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#9fb4e8">1 · TICK</text>
+  <text x="490" y="195" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">server.py:307</text>
+  <text x="490" y="212" font-family="system-ui" font-size="12.5" fill="#c6ccd8">the world advances — jolt, phase, g</text>
+</g>
+<g>
+  <rect x="470" y="290" width="320" height="74" rx="12" fill="#1e2128" stroke="#7fd4b8" stroke-width="2"/>
+  <text x="490" y="316" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#7fd4b8">2 · COMPOSE</text>
+  <text x="490" y="335" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">memory.py:423</text>
+  <text x="490" y="352" font-family="system-ui" font-size="12.5" fill="#c6ccd8">builds the model's whole input</text>
+</g>
+<g>
+  <rect x="470" y="430" width="320" height="74" rx="12" fill="#1e2128" stroke="#c2a8e8" stroke-width="2"/>
+  <text x="490" y="456" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#c2a8e8">3 · ASK</text>
+  <text x="490" y="475" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">reasoning.py:453 → provider.py</text>
+  <text x="490" y="492" font-family="system-ui" font-size="12.5" fill="#c6ccd8">the only place the model is asked</text>
+</g>
+<g>
+  <rect x="470" y="570" width="320" height="74" rx="12" fill="#1e2128" stroke="#e89aa0" stroke-width="2"/>
+  <text x="490" y="596" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#e89aa0">4 · DECIDE</text>
+  <text x="490" y="615" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">cognition.py:821 · :893</text>
+  <text x="490" y="632" font-family="system-ui" font-size="12.5" fill="#c6ccd8">reads the JSON back into variables</text>
+</g>
+<g>
+  <rect x="470" y="710" width="320" height="74" rx="12" fill="#1e2128" stroke="#e89aa0" stroke-width="2"/>
+  <text x="490" y="736" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#e89aa0">5 · VALIDATE + APPLY</text>
+  <text x="490" y="755" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">actions.py → world.py</text>
+  <text x="490" y="772" font-family="system-ui" font-size="12.5" fill="#c6ccd8">whitelist, then clamp</text>
+</g>
+<g>
+  <rect x="470" y="850" width="320" height="74" rx="12" fill="#1e2128" stroke="#7fd4b8" stroke-width="2"/>
+  <text x="490" y="876" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#7fd4b8">6 · STORE</text>
+  <text x="490" y="895" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">memory.py:437 absorb()</text>
+  <text x="490" y="912" font-family="system-ui" font-size="12.5" fill="#c6ccd8">one episode, or none if quiet</text>
+</g>
+
+<!-- spine arrows, downward -->
+<g stroke="#8b93a5" stroke-width="2" fill="none" marker-end="url(#ah)">
+  <path d="M630,232 L630,282"/>
+  <path d="M630,372 L630,422"/>
+  <path d="M630,512 L630,562"/>
+  <path d="M630,652 L630,702"/>
+  <path d="M630,792 L630,842"/>
+</g>
+
+<!-- ============ LEFT LANE ============ -->
+<g>
+  <rect x="86" y="140" width="322" height="74" rx="12" fill="#1e2128" stroke="#f0b088" stroke-width="2"/>
+  <text x="106" y="166" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#f0b088">THE BROWSER</text>
+  <text x="106" y="185" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">index.html + src/*.js</text>
+  <text x="106" y="202" font-family="system-ui" font-size="12.5" fill="#c6ccd8">holds no truth of its own</text>
+</g>
+
+<g>
+  <rect x="86" y="270" width="322" height="94" rx="12" fill="#1e2128" stroke="#e8c96a" stroke-width="2"/>
+  <text x="106" y="296" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#e8c96a">YOU AUTHOR — on disk</text>
+  <text x="106" y="316" font-family="system-ui" font-size="12.5" fill="#c6ccd8"><tspan font-family="Consolas,monospace" fill="#98a0b0">prompts/seat/ × 8</tspan> one per parameter</text>
+  <text x="106" y="334" font-family="system-ui" font-size="12.5" fill="#c6ccd8"><tspan font-family="Consolas,monospace" fill="#98a0b0">prompts/environment × 2</tspan> norms</text>
+  <text x="106" y="352" font-family="system-ui" font-size="12.5" fill="#c6ccd8"><tspan font-family="Consolas,monospace" fill="#98a0b0">personas/phill.py</tspan> body + seat</text>
+</g>
+
+<!-- browser <-> server -->
+<g stroke="#f0b088" stroke-width="2" fill="none">
+  <path d="M408,172 L432,172 L432,182 L466,182" marker-end="url(#ahp)"/>
+  <path d="M466,208 L432,208 L432,198 L408,198" marker-end="url(#ahp)"/>
+</g>
+<text x="560" y="122" font-family="Consolas,monospace" font-size="10.5" fill="#f0b088" text-anchor="start">POST /api/chat →</text>
+<text x="560" y="248" font-family="Consolas,monospace" font-size="10.5" fill="#f0b088" text-anchor="start">GET /api/state ←</text>
+
+<!-- authored -> compose, and -> ask -->
+<g stroke="#e8c96a" stroke-width="2" fill="none" marker-end="url(#ahb)">
+  <path d="M380,306 L452,306 L452,318 L466,318"/>
+  <path d="M96,364 L96,470 L466,470"/>
+</g>
+<text x="392" y="292" font-family="Consolas,monospace" font-size="10.5" fill="#e8c96a" text-anchor="end">the world, in prose →</text>
+<text x="382" y="440" font-family="Consolas,monospace" font-size="10.5" fill="#e8c96a" text-anchor="end">the body, and the seat →</text>
+<text x="382" y="456" font-family="Consolas,monospace" font-size="10.5" fill="#e89aa0" text-anchor="end">a preference he was handed ⚠</text>
+
+<!-- the loop-back: store -> compose -->
+<g stroke="#7fd4b8" stroke-width="2.5" fill="none" marker-end="url(#ahm)">
+  <path d="M470,887 L488,887 L488,918 L620,918 L620,946 L430,946 L430,327 L466,327"/>
+</g>
+<text x="418" y="650" font-family="Consolas,monospace" font-size="10.5" fill="#7fd4b8" transform="rotate(-90 418 650)" text-anchor="middle">episodic memory — 6 retrieved next beat</text>
+<g>
+  <circle cx="430" cy="560" r="15" fill="#16181d" stroke="#7fd4b8" stroke-width="2.5"/>
+  <path d="M424,560 L428,565 L437,554" stroke="#7fd4b8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</g>
+<text x="452" y="556" font-family="Consolas,monospace" font-size="10.5" fill="#7fd4b8">the only</text>
+<text x="452" y="570" font-family="Consolas,monospace" font-size="10.5" fill="#7fd4b8">memory</text>
+
+<!-- store -> browser -->
+<g stroke="#f0b088" stroke-width="2" fill="none" marker-end="url(#ahp)">
+  <path d="M470,976 L240,976 L240,276 L408,276"/>
+</g>
+<text x="252" y="996" font-family="Consolas,monospace" font-size="10.5" fill="#f0b088">state readouts flow back out to the page</text>
+
+<!-- ============ RIGHT LANE ============ -->
+<g>
+  <rect x="860" y="430" width="330" height="74" rx="12" fill="#1e2128" stroke="#c2a8e8" stroke-width="2"/>
+  <text x="880" y="456" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#c2a8e8">THE MODEL</text>
+  <text x="880" y="475" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">Groq or Ollama — off this machine</text>
+  <text x="880" y="492" font-family="system-ui" font-size="12.5" fill="#c6ccd8">weights never change</text>
+</g>
+<g stroke="#c2a8e8" stroke-width="2" fill="none">
+  <path d="M790,456 L824,456 L824,444 L856,444" marker-end="url(#ahl)"/>
+  <path d="M856,486 L824,486 L824,478 L790,478" marker-end="url(#ahl)"/>
+</g>
+<text x="824" y="424" font-family="Consolas,monospace" font-size="10.5" fill="#c2a8e8" text-anchor="middle">the prompt</text>
+<text x="824" y="512" font-family="Consolas,monospace" font-size="10.5" fill="#c2a8e8" text-anchor="middle">JSON</text>
+
+<g>
+  <rect x="860" y="580" width="330" height="74" rx="12" fill="#1e2128" stroke="#e89aa0" stroke-width="2"/>
+  <text x="880" y="606" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#e89aa0">HARD LIMITS</text>
+  <text x="880" y="625" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">world.py · actions.py</text>
+  <text x="880" y="642" font-family="system-ui" font-size="12.5" fill="#c6ccd8">cannot be argued with</text>
+</g>
+<g stroke="#e89aa0" stroke-width="2" fill="none" marker-end="url(#ahx)">
+  <path d="M790,600 L824,600 L824,608 L856,608"/>
+  <path d="M856,634 L824,634 L824,616 L790,616"/>
+</g>
+<text x="824" y="568" font-family="Consolas,monospace" font-size="10.5" fill="#e89aa0" text-anchor="middle">verb + value</text>
+<text x="824" y="668" font-family="Consolas,monospace" font-size="10.5" fill="#e89aa0" text-anchor="middle">clamped / refused</text>
+
+<g>
+  <rect x="860" y="850" width="330" height="74" rx="12" fill="#1e2128" stroke="#e8c96a" stroke-width="2"/>
+  <text x="880" y="876" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#e8c96a">QUESTIONNAIRE</text>
+  <text x="880" y="895" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">questionnaire.py — MDMT</text>
+  <text x="880" y="912" font-family="system-ui" font-size="12.5" fill="#c6ccd8">fires once, at the end</text>
+</g>
+<g stroke="#e8c96a" stroke-width="2" fill="none" marker-end="url(#ahb)">
+  <path d="M790,912 L830,912 L830,898 L856,898"/>
+</g>
+<text x="700" y="932" font-family="Consolas,monospace" font-size="10.5" fill="#e8c96a">end of ride only</text>
+
+<!-- ============ THE WALL ============ -->
+<g>
+  <rect x="470" y="1022" width="720" height="96" rx="12" fill="#252932" stroke="#e89aa0" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="492" y="1050" font-family="Consolas,monospace" font-size="13.5" font-weight="700" fill="#e89aa0">AND HERE THE CHAIN STOPS</text>
+  <text x="492" y="1071" font-family="system-ui" font-size="13" fill="#c6ccd8">No arrow leaves step 6 toward a lesson. Nothing consolidates, nothing is written to</text>
+  <text x="492" y="1090" font-family="system-ui" font-size="13" fill="#c6ccd8">semantic or procedural memory. The loop can <tspan font-style="italic">notice</tspan>; it cannot <tspan font-style="italic">generalise</tspan>.</text>
+  <text x="492" y="1109" font-family="Consolas,monospace" font-size="10.5" fill="#98a0b0">memory.py:182 write() returns False — documented, deliberate</text>
+</g>
+</svg>
+</figure>
+<p class="cap">
+  <b>Reading it.</b> The spine runs downward and is the order of one beat. The two vertical
+  lanes are the only outside participants: the browser on the left, the model and the hard
+  limits on the right. The single <span style="color:#7fd4b8">mint arrow that climbs back up</span>
+  the left of the spine is episodic retrieval — the whole of what this agent remembers.
+</p>
+
+<div class="keys">
+  <span><i style="background:#f0b088"></i> you, and the page</span>
+  <span><i style="background:#e8c96a"></i> things you authored</span>
+  <span><i style="background:#7fd4b8"></i> memory</span>
+  <span><i style="background:#c2a8e8"></i> the model</span>
+  <span><i style="background:#e89aa0"></i> hard limits</span>
+  <span><i style="background:#9fb4e8"></i> the process and its clock</span>
+</div>
+
+<h2><span class="n">1</span> · Who sends what to whom</h2>
+
+<div class="cards">
+  <div class="card c-peach">
+    <h3>Browser → server</h3>
+    <p>Your typed message. It arrives as <b>something the passenger heard</b>, not as a state
+    override — so he has to decide what to do about it.</p>
+    <span class="f">POST /api/chat · server.py:167</span>
+  </div>
+  <div class="card c-peach">
+    <h3>Server → browser</h3>
+    <p>Every number on screen came from here. The page holds no truth of its own, which is why
+    the faked trust gauge was a lie the server could not have been.</p>
+    <span class="f">GET /api/state · server.py:137</span>
+  </div>
+  <div class="card c-peri">
+    <h3>Clock → agent</h3>
+    <p>Time passes because a daemon thread says so, not because the page is open. Close the tab
+    and the ride continues.</p>
+    <span class="f">ticker() · engine.tick(1) · server.py:307</span>
+  </div>
+  <div class="card c-butter">
+    <h3>Disk → compose</h3>
+    <p>Your eight seat files become the <i>world</i> half of the prompt. Read every beat, so a
+    single sentence is worth more than it looks.</p>
+    <span class="f">prompts/seat/*.md → semantic.render()</span>
+  </div>
+  <div class="card c-butter">
+    <h3>Disk → ask</h3>
+    <p>The persona's <b>body</b> arrives as physics. Its <b>seat + tolerance</b> arrive as an
+    opinion he was handed — this is the ⚠ on the diagram.</p>
+    <span class="f">phill.py:18–29 → agent.py:177</span>
+  </div>
+  <div class="card c-mint">
+    <h3>Compose → ask</h3>
+    <p>Exactly five things, and nothing else: <code>episodes</code>, <code>episodes_text</code>,
+    <code>body</code>, <code>world</code>, <code>vocabulary</code>. No mood, no trust number.</p>
+    <span class="f">memory.py:423</span>
+  </div>
+  <div class="card c-lav">
+    <h3>Ask ⇄ model</h3>
+    <p>The whole round trip. The prompt goes out over the network; a JSON decision comes back.
+    This is the only conversation with a mind in the system.</p>
+    <span class="f">reasoning.py:453 → provider.py</span>
+  </div>
+  <div class="card c-blush">
+    <h3>Decide → limits</h3>
+    <p>A verb and a number. If the verb is invented it is rejected; if the number is past the end
+    of the rail it is clamped — and the refusal comes back as a real outcome.</p>
+    <span class="f">actions.py whitelist → world.py clamp</span>
+  </div>
+  <div class="card c-mint">
+    <h3>Store ⇢ compose</h3>
+    <p>The mint arrow. Six episodes, retrieved, decaying. It can re-show him beat 34; it can
+    never turn beat 34 into a rule.</p>
+    <span class="f">memory.py:437 → :286 · budget 6</span>
+  </div>
+</div>
+
+<h2><span class="n">2</span> · The four answers that matter</h2>
+
+<table>
+  <thead><tr><th>QUESTION</th><th>ANSWER</th><th>WHERE</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Who decides?</td>
+      <td>The model, alone. Python contributes the body's dynamics and the clamps, never a
+      preference.</td>
+      <td class="pos">cognition.py:821</td>
+    </tr>
+    <tr>
+      <td>Who can stop him?</td>
+      <td>Nobody, in the sense of override — <code>/api/seat</code> is <i>you</i> moving the seat,
+      which is the point of watching. The only hard stop is the physics.</td>
+      <td>POST /api/seat</td>
+    </tr>
+    <tr>
+      <td>What does he learn?</td>
+      <td class="neg">Nothing that generalises. Re-exposure only. <code>write()</code> returns
+      <code>False</code> by design.</td>
+      <td class="neg">memory.py:182</td>
+    </tr>
+    <tr>
+      <td>Where is trust scored?</td>
+      <td>After the ride, by questionnaire. Never during — the gauge is inert and says so.</td>
+      <td>questionnaire.py</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2><span class="n">3</span> · Three arrows that should be there and are not</h2>
+
+<p>
+  Reading the diagram as a graph makes the absences obvious, which prose had buried. Each of
+  these is a deliberate omission, and each is a decision you may want to revisit.
+</p>
+
+<div class="cards">
+  <div class="card c-blush">
+    <h3>store ⇢ lesson</h3>
+    <p>No consolidation. CoALA's <i>safe</i> learning action is available and unused. This is the
+    absence your last question was about.</p>
+    <span class="f">principled? one is, one is only staging</span>
+  </div>
+  <div class="card c-blush">
+    <h3>mood ⇢ decide</h3>
+    <p>Suspicion and comfort accumulate, then are read only by unreachable code and idle
+    bubbles. <b>The comfort and energy bars change no decision.</b></p>
+    <span class="f">cognition.py:648 onward</span>
+  </div>
+  <div class="card c-blush">
+    <h3>probe ⊥ stimulus</h3>
+    <p><code>__EXPERIMENTER_CHAT__</code> proxies to the same <code>/api/chat</code> as your
+    messages. Instrumentation and stimulus are indistinguishable to him.</p>
+    <span class="f">src/cognitive.js:1255</span>
+  </div>
+</div>
+
+<footer>
+  cabin-agent-sim · directed flow · read from source 2026-10-01 · every <code>file:line</code>
+  opened and confirmed: <b>server.py:137/167/307 · agent.py:177 · cognition.py:648/821/893 ·
+  memory.py:182/286/423/437 · reasoning.py:453 · provider.py · actions.py · world.py ·
+  questionnaire.py · prompts/seat/ × 8</b> ·
+  companion to <a href="backend-architecture.html">backend-architecture.html</a>,
+  <a href="coala-vs-ours-diagram.html">coala-vs-ours-diagram.html</a> and
+  <a href="tutorial-cognitive-v3.html">tutorial-cognitive-v3.html</a>
+</footer>
+
+</div>
+</body>
+</html>
