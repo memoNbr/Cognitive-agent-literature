@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the cabin agent actually works — backend architecture</title>
+<meta name="description" content="A whiteboard map of the cabin-agent-sim backend: what the captain authors on disk, how the Python process decides a beat, where the four memory stores sit, how the browser talks to it, and where the hard limits live.">
+<style>
+  :root{
+    --board:#fcfcfb; --ink:#1c1c1c; --blue:#1d4ed8; --green:#15803d;
+    --orange:#c2410c; --red:#be123c; --violet:#6d28d9; --grey:#6b7280;
+    --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{background:#e9e9e7}
+  body{margin:0;background:var(--board);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:1240px;margin:0 auto;background:var(--board);padding:34px 44px 90px;box-shadow:0 0 0 1px rgba(0,0,0,.07),0 2px 26px rgba(0,0,0,.10);position:relative}
+  .sheet::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 10% 3%,rgba(29,78,216,.028),transparent 55%),radial-gradient(ellipse at 90% 97%,rgba(109,40,217,.022),transparent 55%)}
+  .wrap{position:relative;z-index:1}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--grey)}
+  h1{margin:10px 0 8px;font-size:32px;line-height:1.1;letter-spacing:-.018em;color:var(--blue);font-weight:800}
+  h1 .i{color:var(--ink)}
+  h2{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);margin:46px 0 16px;font-weight:700;padding-bottom:5px;display:inline-block;border-bottom:2.5px solid var(--blue);border-radius:6px 3px 8px 2px}
+  h2 .n{color:var(--blue)}
+  h3{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--ink);margin:26px 0 10px;font-weight:700}
+  p{max-width:84ch}
+  code{font-family:var(--mono);font-size:.87em;background:#f1f2ef;padding:1px 5px;border-radius:3px;border:1px solid #e2e3de}
+  a{color:var(--blue)} b{font-weight:700}
+  .w1{border-radius:255px 15px 225px 15px/15px 225px 15px 255px}
+  .w2{border-radius:15px 225px 15px 255px/255px 15px 225px 15px}
+  .w3{border-radius:225px 15px 255px 15px/15px 255px 15px 225px}
+  .w4{border-radius:190px 25px 200px 30px/28px 200px 22px 190px}
+
+  .box{padding:12px 15px;background:#fff;border:2px solid var(--ink)}
+  .box .t{font-family:var(--mono);font-size:13.5px;font-weight:700;letter-spacing:.03em}
+  .box .f{font-family:var(--mono);font-size:10px;color:var(--grey);margin-top:2px}
+  .box .d{font-size:13.5px;color:#2c2c2c;margin-top:6px}
+  .c-blue{border-color:var(--blue);background:rgba(29,78,216,.04)}   .c-blue .t{color:var(--blue)}
+  .c-violet{border-color:var(--violet);background:rgba(109,40,217,.04)} .c-violet .t{color:var(--violet)}
+  .c-green{border-color:var(--green);background:rgba(21,128,61,.04)}  .c-green .t{color:var(--green)}
+  .c-orange{border-color:var(--orange);background:rgba(194,65,12,.04)} .c-orange .t{color:var(--orange)}
+  .c-red{border-color:var(--red);background:rgba(190,18,60,.04)}      .c-red .t{color:var(--red)}
+  .c-grey{border-style:dashed;border-color:#9aa0a6;background:rgba(0,0,0,.02)} .c-grey .t{color:var(--grey)}
+
+  /* three bands */
+  .bands{display:grid;grid-template-columns:1fr 1.42fr 1fr;gap:16px;align-items:start;margin-top:8px}
+  .band{display:flex;flex-direction:column;gap:11px}
+  .band-h{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;text-align:center;padding-bottom:6px;border-bottom:2px solid var(--ink);margin-bottom:2px}
+  .band-h small{display:block;font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;font-weight:600;color:var(--grey);margin-top:3px}
+  .band-l{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--blue);font-weight:700;margin:8px 0 -4px}
+
+  /* the beat sequence */
+  .seq{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .step{border:2px solid var(--blue);background:#fff;padding:11px 12px;position:relative;border-radius:255px 15px 225px 15px/15px 225px 15px 255px}
+  .step .n{position:absolute;top:-9px;left:-9px;width:23px;height:23px;border-radius:50%;background:var(--blue);color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step .t{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.03em}
+  .step .d{font-size:12.5px;color:#2c2c2c;margin-top:5px}
+
+  .flow{display:flex;align-items:stretch;flex-wrap:wrap;margin:12px 0}
+  .fn{border:2px solid var(--ink);background:#fff;padding:9px 11px;font-size:13px;display:flex;flex-direction:column;justify-content:center}
+  .fn b{display:block;font-family:var(--mono);font-size:11.5px;color:var(--blue);letter-spacing:.04em;margin-bottom:3px}
+  .ar{display:flex;align-items:center;padding:0 9px;font-size:17px;font-weight:700;color:var(--ink)}
+  .ar.x{color:var(--red)}
+
+  .note{max-width:84ch;margin:20px 0;padding:14px 18px;background:rgba(21,128,61,.05);border:2px solid var(--green);font-size:15px;border-radius:255px 15px 225px 15px/15px 225px 15px 255px}
+  .warn{max-width:84ch;margin:20px 0;padding:14px 18px;background:rgba(190,18,60,.05);border:2px solid var(--red);font-size:15px;border-radius:15px 225px 15px 255px/255px 15px 225px 15px}
+  .amber{max-width:84ch;margin:20px 0;padding:14px 18px;background:rgba(194,65,12,.05);border:2px solid var(--orange);font-size:15px;border-radius:225px 15px 255px 15px/15px 255px 15px 225px}
+  .amber{border-radius:15px 225px 15px 255px/255px 15px 225px 15px}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;font-size:13.5px}
+  th,td{padding:9px 11px;text-align:left;vertical-align:top}
+  thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;border-bottom:2.5px solid var(--ink)}
+  tbody td{border-bottom:1.5px dashed #cfd1cc;color:#2c2c2c}
+  tbody td:first-child{color:var(--grey);font-family:var(--mono);font-size:12px}
+  tbody tr:last-child td{border-bottom:none}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:#3a3a3a;margin-top:16px;padding-top:13px;border-top:1.5px dashed #c9cbc6}
+  .legend i{display:inline-block;width:11px;height:11px;margin-right:6px;vertical-align:-1px;border-radius:50%}
+  footer{margin-top:52px;padding-top:16px;border-top:2px solid var(--ink);font-size:12.5px;color:var(--grey);line-height:1.7}
+  footer b{color:var(--ink)}
+  @media print{html{background:#fff}.sheet{box-shadow:none;max-width:none}}
+</style>
+</head>
+<body>
+<div class="sheet"><div class="wrap">
+
+<div class="kick">cabin-agent-sim · backend architecture · whiteboard</div>
+<h1>How the cabin agent <span class="i">actually works</span></h1>
+<p>
+  Everything below was read out of the source on 2026-10-01, not remembered. Where a box
+  carries a <code>file:line</code>, that line was opened and confirmed. Nothing here is a plan.
+</p>
+
+<h2><span class="n">1</span> · The whole machine, three bands</h2>
+
+<div class="bands">
+
+  <!-- ============ BAND 1 : DISK ============ -->
+  <div class="band">
+    <div class="band-h">on disk<small>you author these</small></div>
+
+    <div class="band-l">prompts / seat / — 8 files</div>
+    <div class="box c-blue w1">
+      <div class="t">one file per parameter</div>
+      <div class="f">prompts/seat/*.md</div>
+      <div class="d">Read by the model <b>every beat</b>. All eight currently begin
+      <code>DRAFT — captain to edit</code>.</div>
+    </div>
+
+    <div class="box c-blue w2" style="padding:9px 12px">
+      <div class="d" style="margin-top:0;font-family:var(--mono);font-size:11.5px">
+        00-cushion · 10-height · 20-slider · 30-rotation<br>40-recline · 50-material · 60-colour · <b>70-posture</b>
+      </div>
+    </div>
+
+    <div class="band-l">prompts / — 2 files</div>
+    <div class="box c-blue w3">
+      <div class="t">environment</div>
+      <div class="f">environment-1-weekend-ride.md<br>environment-2-lounge.md</div>
+      <div class="d">The situation and the norms. <b>Soft limits live here</b> — prose, not
+      enforcement.</div>
+    </div>
+
+    <div class="band-l">personas /</div>
+    <div class="box c-green w1">
+      <div class="t">phill.py</div>
+      <div class="d"><b>body</b> — 181 cm, 82 kg, 92 cm leg. Physics of his frame.
+      <i>"We supply the body, not the conclusion."</i> Correct — keep.</div>
+    </div>
+    <div class="box c-red w2">
+      <div class="t">seat + tolerance</div>
+      <div class="f">phill.py:18–29 · used at agent.py:177</div>
+      <div class="d">A declared preferred position per axis, <b>written into the prompt</b>.
+      This pre-answers the experiment.</div>
+    </div>
+  </div>
+
+  <!-- ============ BAND 2 : PYTHON ============ -->
+  <div class="band">
+    <div class="band-h">the python process<small>one process, one ride</small></div>
+
+    <div class="box c-violet w1">
+      <div class="t">server.py — HTTP + the clock</div>
+      <div class="f">:303 ThreadingHTTPServer 127.0.0.1:8000 · :307 ticker()</div>
+      <div class="d">A daemon thread calls <code>engine.tick(1)</code> every interval.
+      This — not the browser — is what makes time pass.</div>
+    </div>
+
+    <div class="box w2">
+      <div class="t">session.py</div>
+      <div class="f">:12 <code>from .agent import CognitiveAgent</code></div>
+      <div class="d">Holds the persona, the cabin, the memory, the provider, and the run
+      archive. <code>snapshot.priors</code> starts at zero rides, so runs never leak into
+      each other.</div>
+    </div>
+
+    <div class="box c-blue w3">
+      <div class="t">agent.py — perceive → reason → validate → act</div>
+      <div class="f">326 lines · :177 builds the prompt</div>
+      <div class="d">The pipeline. It validates whatever comes back before the world is
+      allowed to move.</div>
+    </div>
+
+    <div class="box c-blue w1">
+      <div class="t">cognition.py — the Mind</div>
+      <div class="f">1284 lines · :821 the decision · :893 the branch</div>
+      <div class="d">The body's dynamics: jolt, gap, ride phase, <code>stand</code> legality.
+      <b>Line 893 takes <code>_llm_cycle()</code> and returns</b>, so the rules argmax below it
+      never runs while a model is present.</div>
+    </div>
+
+    <div class="band-l">the four memory stores — memory.py</div>
+    <div class="box c-green w2">
+      <div class="t">WorkingMemory</div><div class="f">:400 · compose() :423</div>
+      <div class="d">Builds the model's whole input. Returns exactly five things:
+      <code>episodes, episodes_text, body, world, vocabulary</code>.</div>
+    </div>
+    <div class="box c-green w3">
+      <div class="t">EpisodicMemory</div><div class="f">:196 · retrieve() :286</div>
+      <div class="d">Append-only, budget of <b>6 per beat</b>, decays, evicts.
+      <b>Never consolidates.</b></div>
+    </div>
+    <div class="box c-green w1">
+      <div class="t">SemanticMemory</div><div class="f">:87 · body_line() :143 · write() :182</div>
+      <div class="d">The authored prose. <code>write()</code> returns <code>False</code> —
+      a deliberate no-op. This is CoALA's <i>safe</i> learning action, not taken.</div>
+    </div>
+    <div class="box c-green w2">
+      <div class="t">ProceduralMemory</div><div class="f">:344 · AXES/KINDS :358</div>
+      <div class="d">The action vocabulary. <b>Never written by the model</b> — CoALA's
+      procedural caution, taken literally.</div>
+    </div>
+
+    <div class="band-l">the brain</div>
+    <div class="box c-orange w3">
+      <div class="t">reasoning.py — decide()</div><div class="f">:453</div>
+      <div class="d">Assembles compose()'s five parts into the prompt and calls the provider.
+      <b>This is the only place the model is asked anything.</b></div>
+    </div>
+    <div class="box c-orange w1">
+      <div class="t">provider.py — the actual HTTP call</div>
+      <div class="f">GroqProvider · Ollama · scripted</div>
+      <div class="d">Free cloud inference or a local model. Weights never change — there is no
+      training path in the codebase at all.</div>
+    </div>
+
+    <div class="band-l">the body and its limits</div>
+    <div class="box c-red w2">
+      <div class="t">actions.py — the referee</div>
+      <div class="f">AXES :92 · POSTURE_ACTIONS</div>
+      <div class="d">The executable whitelist. A verb the model invents is rejected here, not
+      argued with.</div>
+    </div>
+    <div class="box c-red w3">
+      <div class="t">world.py — physical truth</div>
+      <div class="f">slider 260–440 · height 380–460 · recline 80–110</div>
+      <div class="d">Clamps, and <code>can_stand</code>. <b>Hard limits live here.</b> A clamp
+      comes back as a real outcome, so the model can learn the limit rather than be told it.</div>
+    </div>
+    <div class="box c-grey w1">
+      <div class="t">questionnaire.py</div><div class="f">MDMT, 16 items, 4 subscales</div>
+      <div class="d">Fires once, at the end of the ride. Trust is scored <i>after</i> the
+      experience, never during it.</div>
+    </div>
+  </div>
+
+  <!-- ============ BAND 3 : BROWSER ============ -->
+  <div class="band">
+    <div class="band-h">the browser<small>what you touch</small></div>
+
+    <div class="box c-blue w2">
+      <div class="t">index.html + src/*.js</div>
+      <div class="d">The 3D cabin and the panels. It holds <b>no truth of its own</b> — every
+      number it shows came from <code>/api/state</code>.</div>
+    </div>
+
+    <div class="band-l">it asks</div>
+    <div class="box c-green w3">
+      <div class="t">GET /api/state</div>
+      <div class="d">The cockpit readouts: clock, speed, g, seat, the mind panel.</div>
+    </div>
+    <div class="box c-green w1">
+      <div class="t">GET /api/snapshot</div>
+      <div class="d">The schema every run is measured against.</div>
+    </div>
+    <div class="box c-green w2">
+      <div class="t">GET /api/prompt</div>
+      <div class="d">Reads your authored prose so the Prompts panel can show it.</div>
+    </div>
+
+    <div class="band-l">it tells</div>
+    <div class="box c-orange w1">
+      <div class="t">POST /api/chat</div>
+      <div class="d"><b>Your chat.</b> It reaches the agent as an utterance it has to
+      respond to — it is not a debugger and it does not set state directly.</div>
+    </div>
+    <div class="box c-orange w2">
+      <div class="t">POST /api/seat</div>
+      <div class="d">The slider moves. This is <i>you</i> overriding the agent, which is the
+      point of the watch.</div>
+    </div>
+    <div class="box c-orange w3">
+      <div class="t">POST /api/control</div>
+      <div class="d">Start, stop, camera. <b>Camera never moves on a panel toggle.</b></div>
+    </div>
+    <div class="box c-red w1">
+      <div class="t">POST /api/prompt</div>
+      <div class="f">server.py:201–213 · writes at prompts.py:561/581/601</div>
+      <div class="d"><b>The write-back path, and it is real.</b> Sending
+      <code>{"text": …}</code> is documented in the code as
+      <i>"saves the panel's edit to the source file and applies it"</i>, and three
+      <code>write_text()</code> calls do exactly that. The suspected cause of an
+      <code>20-slider.md</code> overwrite — see §4.</div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i style="background:var(--blue)"></i>inputs and the browser</span>
+  <span><i style="background:var(--green)"></i>memory stores and reads</span>
+  <span><i style="background:var(--orange)"></i>the model and your chat</span>
+  <span><i style="background:var(--red)"></i>hard limits — code, not prose</span>
+  <span><i style="background:var(--violet)"></i>process and clock</span>
+  <span><i style="background:#9aa0a6"></i>after the ride</span>
+</div>
+
+<h2><span class="n">2</span> · One beat, end to end</h2>
+
+<p>The ticker fires. This is the whole loop, and it is the same in both columns of the
+CoALA comparison — <code>reasoning.py:453</code> is the only place the model is consulted.</p>
+
+<div class="seq">
+  <div class="step"><span class="n">1</span><div class="t">TICK</div><div class="d">The world advances. Jolts, gap, phase. The agent does not choose this.</div></div>
+  <div class="step"><span class="n">2</span><div class="t">COMPOSE</div><div class="d"><code>memory.py:423</code> pulls six episodes, the body, the world prose, the vocabulary.</div></div>
+  <div class="step"><span class="n">3</span><div class="t">ASK</div><div class="d"><code>reasoning.py:453</code> → <code>provider.py</code> → the model returns JSON.</div></div>
+  <div class="step"><span class="n">4</span><div class="t">ABSORB</div><div class="d"><code>memory.py:437</code> parses it back into variables and writes one episode.</div></div>
+</div>
+
+<div class="flow">
+  <div class="fn w2"><b>VALIDATE</b>actions.py — is this verb real?</div>
+  <div class="ar">→</div>
+  <div class="fn w3"><b>CLAMP</b>world.py — the rails end at 440</div>
+  <div class="ar">→</div>
+  <div class="fn w1"><b>APPLY</b>the seat actually moves</div>
+  <div class="ar">→</div>
+  <div class="fn w2"><b>REPORT</b>the clamp comes back as an outcome</div>
+  <div class="ar">↺</div>
+</div>
+
+<div class="amber">
+  <b>And here is where the chain stops.</b> After <i>apply</i>, the episode is stored and can
+  be retrieved again — but there is no arrow from the outcome to a lesson. No consolidate, no
+  learn. The loop can <i>notice</i>; it cannot <i>generalise</i>.
+</div>
+
+<h2><span class="n">3</span> · Your chat, precisely</h2>
+
+<p>You asked how your chat reaches the agent. It is worth being exact, because it is easy to
+assume it is a debugger and it is not.</p>
+
+<div class="flow">
+  <div class="fn w1"><b>YOU TYPE</b>chat pane, bottom right</div>
+  <div class="ar">→</div>
+  <div class="fn w2"><b>POST /api/chat</b>server.py:167</div>
+  <div class="ar">→</div>
+  <div class="fn w3"><b>becomes an utterance</b>something the agent must answer</div>
+  <div class="ar">→</div>
+  <div class="fn w1"><b>the agent replies</b>in its own words, next beat</div>
+</div>
+
+<div class="note">
+  <b>Why this matters for the science.</b> Your message enters the prompt as <i>something the
+  passenger heard</i>, not as a state override — so the agent has to decide what to do about it,
+  and its answer is a genuine reaction rather than a switch being thrown.
+</div>
+
+<div class="warn">
+  <b>But there is only one chat channel, and you should know it.</b> I had assumed the
+  experimenter probe was separate from the participant chat. It is not.
+  <code>__EXPERIMENTER_CHAT__</code> is a <b>JavaScript shim</b>
+  (<code>src/cognitive.js:1255</code>) that proxies to the <i>same</i> <code>/api/chat</code>
+  endpoint — it only differs by being a synchronous XHR, for compatibility with the old hook
+  shape. Its own comment says the reply is chosen by <code>mind.chat_send()</code> on the
+  server.
+  <br><br>
+  So <b>an experimenter probe and a participant utterance are indistinguishable to the
+  agent.</b> That is fine while you are just watching. It is a serious confound the moment you
+  probe <i>during</i> a measured ride — the agent has no way to treat an instrument reading as
+  different from the passenger hearing something. Worth separating before any human data.
+</div>
+
+<h2><span class="n">4</span> · Three things that are wrong right now</h2>
+
+<table>
+  <thead><tr><th>WHERE</th><th>WHAT</th><th>WHY IT MATTERS</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>phill.py:18–29<br>agent.py:177</td>
+      <td>A declared preferred seat position per axis, with a tolerance, written into the prompt
+      as <i>"Preferred seat settings: …"</i></td>
+      <td>The experiment asks which position is better and hands the agent the answer first.
+      This is the pre-fixed psychological value we deleted on day one, surviving in the persona.</td>
+    </tr>
+    <tr>
+      <td>prompts/seat/*.md</td>
+      <td>All eight still begin <code>DRAFT — captain to edit</code></td>
+      <td>They are read every beat and they are the primary independent variable. Until they are
+      written, any run measures the placeholder.</td>
+    </tr>
+    <tr>
+      <td>POST /api/prompt<br>prompts.py:561/581/601</td>
+      <td>The Prompts panel writes your <code>.md</code> files back to disk — confirmed, not
+      suspected. Three <code>write_text()</code> calls</td>
+      <td>An unexplained <code>20-slider.md</code> overwrite happened. Until the write-back
+      cannot reconstruct authored prose, the prompts are not safe to edit in the browser.</td>
+    </tr>
+    <tr>
+      <td>src/cognitive.js:1255</td>
+      <td><code>__EXPERIMENTER_CHAT__</code> proxies to the same <code>/api/chat</code> as the
+      participant chat</td>
+      <td>Instrumentation and stimulus are indistinguishable to the agent. A probe mid-ride is a
+      confound, not a measurement.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  <b>And one that is not a bug, but will read as one.</b> The comfort and energy bars in the
+  mind panel are wired to state that accumulates (<code>cognition.py:648</code> onward) and is
+  then read only by the unreachable rules path, by the avatar's idle bubble, and by the
+  telemetry log. <b>In LLM mode they do not influence a decision.</b> Same class of problem as
+  the old <code>TRUST 56%</code> — a live-looking gauge wired to nothing.
+</div>
+
+<footer>
+  cabin-agent-sim · backend architecture · read from source 2026-10-01 · every
+  <code>file:line</code> opened and confirmed: <b>server.py:303/307 · session.py:12 · agent.py:177
+  · cognition.py:648/821/893 · memory.py:87/143/182/196/286/344/358/400/423/437 ·
+  reasoning.py:453 · provider.py · actions.py:92 · world.py · prompts.py:49</b> ·
+  companion to <a href="coala-vs-ours-diagram.html">coala-vs-ours-diagram.html</a> and
+  <a href="tutorial-cognitive-v3.html">tutorial-cognitive-v3.html</a>
+</footer>
+
+</div></div>
+</body>
+</html>
