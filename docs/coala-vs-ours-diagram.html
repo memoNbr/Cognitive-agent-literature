@@ -3,240 +3,305 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CoALA and ours, side by side — a blackboard schematic</title>
-<meta name="description" content="A side-by-side schematic of the CoALA cognitive architecture and the cabin agent's implementation: the four memory systems, the internal action space, the decision process, and where each of ours overlaps, diverges from or is missing relative to the paper.">
+<title>CoALA and ours, side by side — a whiteboard</title>
+<meta name="description" content="A side-by-side whiteboard schematic of the CoALA cognitive architecture and the cabin agent's implementation: the four memory systems, the internal action space, the decision process, and where each of ours overlaps, diverges from or is missing relative to the paper.">
 <style>
+  /* ------------------------------------------------------------------
+     A WHITEBOARD. White board, marker ink, boxes drawn by hand.
+     The wobble is real geometry (asymmetric border-radius), not an image,
+     so it stays crisp at any zoom and prints.
+     The TYPE stays a clean sans on purpose: a script font would be
+     prettier and harder to read, and this thing has to be readable.
+     ------------------------------------------------------------------ */
   :root{
-    --slate:#1b1e1d; --slate2:#232726; --slate3:#151817;
-    --chalk:#e9e7de; --chalk-dim:#a8a79e; --chalk-faint:#6f726c;
-    --ok:#8fd6c0; --part:#e8c96a; --no:#e08a80; --ours:#a9b8e0;
+    --board:#fcfcfb;
+    --ink:#1c1c1c;          /* black marker  */
+    --blue:#1d4ed8;         /* blue marker   */
+    --green:#15803d;        /* green marker  */
+    --orange:#c2410c;       /* orange marker */
+    --red:#be123c;          /* red marker    */
+    --grey:#6b7280;         /* the faded one you can't quite read */
     --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box}
+  html{background:#e9e9e7}
   body{
-    margin:0; background:var(--slate); color:var(--chalk);
-    font-family:var(--sans); font-size:15px; line-height:1.6;
+    margin:0; background:var(--board); color:var(--ink);
+    font-family:var(--sans); font-size:15.5px; line-height:1.62;
     -webkit-font-smoothing:antialiased;
   }
-  /* chalk grain: two very soft radial washes, no images */
-  body::before{
-    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
-    background:
-      radial-gradient(ellipse at 18% 8%, rgba(233,231,222,.045), transparent 55%),
-      radial-gradient(ellipse at 82% 92%, rgba(233,231,222,.03), transparent 55%);
+  /* the board itself: a faint warm cast plus a soft edge shadow, as if lit */
+  .sheet{
+    max-width:1180px; margin:0 auto; background:var(--board);
+    padding:34px 44px 90px; position:relative;
+    box-shadow:0 0 0 1px rgba(0,0,0,.07), 0 2px 26px rgba(0,0,0,.10);
   }
-  .wrap{max-width:1180px; margin:0 auto; padding:26px 20px 80px; position:relative; z-index:1}
+  .sheet::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse at 12% 4%,  rgba(29,78,216,.030), transparent 55%),
+      radial-gradient(ellipse at 88% 96%, rgba(194,65,12,.022), transparent 55%);
+  }
+  .wrap{position:relative; z-index:1}
 
-  header.top{margin-bottom:22px; padding-bottom:16px; border-bottom:1px dashed rgba(233,231,222,.22)}
-  .kick{font-family:var(--mono); font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:var(--chalk-faint)}
-  h1{margin:8px 0 6px; font-size:31px; line-height:1.15; letter-spacing:-.015em; color:var(--chalk); font-weight:700}
-  .sub{color:var(--chalk-dim); font-size:15px; max-width:76ch}
-  code{font-family:var(--mono); font-size:.86em; background:rgba(233,231,222,.07); color:var(--chalk); padding:1px 5px; border:1px solid rgba(233,231,222,.14)}
-  a{color:var(--ok)}
+  /* ---------- headings: marker, underlined by hand ---------- */
+  .kick{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--grey)}
+  h1{
+    margin:10px 0 8px; font-size:33px; line-height:1.1; letter-spacing:-.018em;
+    color:var(--blue); font-weight:800;
+  }
+  h1 .sub-ink{color:var(--ink)}
+  h2{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink); margin:44px 0 16px; font-weight:700;
+    padding-bottom:5px; display:inline-block;
+    border-bottom:2.5px solid var(--blue);
+    border-radius:6px 3px 8px 2px;
+  }
+  h2 .n{color:var(--blue)}
+  p{max-width:82ch}
+  .lede{color:#333; max-width:80ch}
+  code{font-family:var(--mono); font-size:.87em; background:#f1f2ef; color:var(--ink); padding:1px 5px; border-radius:3px; border:1px solid #e2e3de}
+  a{color:var(--blue)}
+  b{font-weight:700}
 
-  h2{font-family:var(--mono); font-size:13px; letter-spacing:.2em; text-transform:uppercase; color:var(--chalk-dim); margin:38px 0 14px; font-weight:600}
-  p{max-width:80ch}
-  .note{max-width:80ch; border-left:3px solid var(--ok); background:rgba(143,214,192,.06); padding:12px 16px; margin:16px 0; font-size:14.5px}
-  .warn{border-left:3px solid var(--part); background:rgba(232,201,106,.06); padding:12px 16px; margin:16px 0; font-size:14.5px; max-width:80ch}
+  /* ---------- hand-drawn boxes ---------- */
+  /* three wobble variants so a wall of boxes does not look stamped */
+  .w1{border-radius:255px 15px 225px 15px / 15px 225px 15px 255px}
+  .w2{border-radius:15px 225px 15px 255px / 255px 15px 225px 15px}
+  .w3{border-radius:225px 15px 255px 15px / 15px 255px 15px 225px}
+  .w4{border-radius:190px 25px 200px 30px / 28px 200px 22px 190px}
 
-  /* ---------- the blackboard: one grid, so a verdict CANNOT drift off its row ---------- */
+  .box{ padding:13px 16px; background:#fff; border:2px solid var(--ink); }
+  .box.ink-blue{border-color:var(--blue)}
+  .box.fill-blue{background:rgba(29,78,216,.045); border-color:var(--blue)}
+  .box.fill-grey{background:rgba(0,0,0,.022); border-color:#9aa0a6; border-style:dashed}
+  .box .ttl{font-family:var(--mono); font-size:14px; letter-spacing:.03em; color:var(--ink); font-weight:700}
+  .box .loc{font-family:var(--mono); font-size:10.5px; color:var(--grey); margin-top:3px}
+  .box .d{font-size:14px; color:#2c2c2c; margin-top:7px}
+  .box .d b{color:var(--ink)}
+
+  /* ---------- the grid: one row = paper | verdict | rig ---------- */
   .board{
-    display:grid; grid-template-columns:1fr 132px 1fr; gap:11px;
-    align-items:stretch;
+    display:grid; grid-template-columns:1fr 128px 1fr; gap:14px 10px; align-items:stretch;
   }
   .col-head{
-    font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
-    color:var(--chalk-dim); text-align:center; padding:0 0 10px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink); text-align:center; font-weight:700;
+    border-bottom:2px solid var(--ink); padding-bottom:6px; margin-bottom:4px;
   }
-  .col-head span{display:block; font-size:15px; color:var(--chalk); letter-spacing:.04em; margin-top:3px; text-transform:none; font-family:var(--sans); font-weight:600}
+  .col-head span{display:block; font-size:14.5px; letter-spacing:.02em; margin-top:4px; text-transform:none; font-family:var(--sans); font-weight:700; color:var(--blue)}
+  .col-head.mid{border-bottom-color:transparent}
 
-  .box{
-    background:rgba(233,231,222,.035);
-    border:1px dashed rgba(233,231,222,.3);
-    padding:12px 14px; position:relative;
-  }
-  .box.solid{border-style:solid; border-color:rgba(233,231,222,.42); background:rgba(233,231,222,.06)}
-  .box.gap{border-color:rgba(224,138,128,.5); background:rgba(224,138,128,.05)}
-  .box .ttl{font-family:var(--mono); font-size:13.5px; letter-spacing:.05em; color:var(--chalk)}
-  .box .loc{font-family:var(--mono); font-size:10.5px; color:var(--chalk-faint); margin-top:2px}
-  .box .d{font-size:13.5px; color:var(--chalk-dim); margin-top:6px}
-  .box .d b{color:var(--chalk); font-weight:600}
-
-  /* verdict cell: stretches to the full row height, so it is always centred
-     against BOTH boxes of its own row and never against a neighbour's */
+  /* the verdict: marker text, a hand-drawn circle round it */
   .v{
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-    border-left:1px solid rgba(233,231,222,.14); border-right:1px solid rgba(233,231,222,.14);
-    background:rgba(233,231,222,.02); padding:4px 2px; text-align:center;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    text-align:center; padding:8px 6px; align-self:stretch;
   }
-  .v.ok{color:var(--ok)} .v.part{color:var(--part)} .v.no{color:var(--no)} .v.ours{color:var(--ours)}
-  .v small{display:block; font-size:9px; letter-spacing:.04em; text-transform:none; color:var(--chalk-faint); margin-top:3px; font-family:var(--sans)}
+  .v .ring{
+    border:2.5px solid currentColor; padding:7px 9px; font-weight:700;
+    border-radius:255px 15px 225px 15px / 15px 225px 15px 255px;
+    transform:rotate(-1.4deg);
+  }
+  .v small{display:block; font-size:10px; letter-spacing:.02em; text-transform:none; color:var(--grey); font-family:var(--sans)}
+  .v.ok{color:var(--green)} .v.part{color:var(--orange)}
+  .v.no{color:var(--red)} .v.ours{color:var(--blue)}
 
-  .legend{display:flex; gap:16px; flex-wrap:wrap; font-family:var(--mono); font-size:11px; color:var(--chalk-dim); margin:16px 0 0}
-  .legend i{display:inline-block; width:10px; height:10px; margin-right:6px; vertical-align:-1px}
+  .legend{display:flex; gap:20px; flex-wrap:wrap; font-size:12.5px; color:#3a3a3a; margin:20px 0 0; padding-top:14px; border-top:1.5px dashed #c9cbc6}
+  .legend i{display:inline-block; width:11px; height:11px; margin-right:7px; vertical-align:-1px; border-radius:50%}
 
-  /* ---------- flow row ---------- */
-  .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:14px 0}
+  /* ---------- the beat cycle ---------- */
+  .flow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:16px 0}
   .fnode{
-    border:1px dashed rgba(233,231,222,.34); background:rgba(233,231,222,.04);
-    padding:10px 12px; font-size:13px; min-width:118px;
+    border:2px solid var(--ink); background:#fff; padding:11px 13px; font-size:13.5px;
+    min-width:126px; display:flex; flex-direction:column; justify-content:center;
   }
-  .fnode b{display:block; font-family:var(--mono); font-size:12px; letter-spacing:.05em; margin-bottom:3px}
-  .fnode.miss{border-color:rgba(224,138,128,.55); background:rgba(224,138,128,.06); color:var(--no)}
-  .farrow{display:flex; align-items:center; padding:0 9px; color:var(--chalk-faint); font-family:var(--mono); font-size:15px}
+  .fnode b{display:block; font-family:var(--mono); font-size:12px; letter-spacing:.05em; color:var(--blue); margin-bottom:4px}
+  .fnode.gone{border:2px dashed var(--red); color:var(--red); background:rgba(190,18,60,.04)}
+  .fnode.gone b{color:var(--red)}
+  .farrow{display:flex; align-items:center; padding:0 11px; color:var(--ink); font-size:19px; font-weight:700}
+  .farrow.x{color:var(--red)}
+
+  /* ---------- callouts: the marker circling a note ---------- */
+  .note{
+    max-width:82ch; margin:20px 0; padding:14px 18px; background:rgba(21,128,61,.05);
+    border:2px solid var(--green); font-size:15px;
+    border-radius:255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+  .warn{
+    max-width:82ch; margin:20px 0; padding:14px 18px; background:rgba(194,65,12,.05);
+    border:2px solid var(--orange); font-size:15px;
+    border-radius:15px 225px 15px 255px / 255px 15px 225px 15px;
+  }
+
+  /* ---------- table ---------- */
+  table{width:100%; border-collapse:separate; border-spacing:0; margin:16px 0; font-size:14px}
+  th,td{padding:10px 12px; text-align:left; vertical-align:top}
+  thead th{
+    font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--ink);
+    border-bottom:2.5px solid var(--ink);
+  }
+  tbody td{border-bottom:1.5px dashed #cfd1cc; color:#2c2c2c}
+  tbody td:first-child{color:var(--grey)}
+  tbody tr:last-child td{border-bottom:none}
 
   pre{
-    background:var(--slate3); border:1px dashed rgba(233,231,222,.26);
-    padding:15px 16px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.6;
-    color:#dcdacf; margin:14px 0;
+    background:#fff; border:2px solid var(--ink); border-radius:255px 15px 225px 15px / 15px 225px 15px 255px;
+    padding:16px 18px; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.62;
+    color:#222; margin:16px 0;
   }
-  pre .c{color:var(--chalk-faint)}
-  pre .k{color:var(--part)}
-  pre .s{color:var(--ok)}
-  pre .d{color:var(--ours)}
-  footer{margin-top:40px; padding-top:16px; border-top:1px dashed rgba(233,231,222,.2); font-family:var(--mono); font-size:11px; color:var(--chalk-faint); letter-spacing:.05em}
+  pre .c{color:var(--grey)} pre .k{color:var(--orange)} pre .s{color:var(--green)} pre .d{color:var(--blue)}
+  footer{
+    margin-top:52px; padding-top:16px; border-top:2px solid var(--ink); font-size:12.5px; color:var(--grey);
+    max-width:none; line-height:1.7;
+  }
+  footer b{color:var(--ink)}
+  @media print{ html{background:#fff} .sheet{box-shadow:none; max-width:none} }
 </style>
 </head>
 <body>
+<div class="sheet">
 <div class="wrap">
 
-<header class="top">
-  <div class="kick">cognitive-agent-literature · schematic · cabin-agent-sim</div>
-  <h1>CoALA and ours, side by side</h1>
-  <div class="sub">A blackboard. CoALA on the left, the cabin agent on the right, and the verdict in
-  the middle. Read it as a correspondence: each row is one component of the paper, the
-  thing that plays that part here, and whether it is genuinely the same idea.
-  <b>Chalk strokes, not a script font</b> — the texture is drawn, the lettering stays legible.</div>
-</header>
+<div class="kick">cognitive-agent-literature · whiteboard · cabin-agent-sim</div>
+<h1>CoALA and ours, <span class="sub-ink">side by side</span></h1>
+<p class="lede">
+  CoALA on the left, the cabin agent on the right, the verdict in the middle. Read it as a
+  correspondence: each row is one component of the paper, the thing that plays that part
+  here, and whether it is genuinely the same idea.
+  <b>The boxes are drawn by hand — the type is not.</b> A script font would look more like
+  a whiteboard and be worse to read, and this has to be readable.
+</p>
 
-<h2>1 · The correspondence</h2>
+<h2><span class="n">1</span> · The correspondence</h2>
 
 <div class="board">
   <div class="col-head">the paper<span>CoALA — arXiv:2309.02427</span></div>
-  <div class="col-head"></div>
+  <div class="col-head mid"></div>
   <div class="col-head">the rig<span>cabin_sim · 181 tests pass · UNCOMMITTED</span></div>
 </div>
 
 <div class="board">
 
-    <div class="box solid">
-      <div class="ttl">Working memory</div>
-      <div class="d">A data structure that <b>persists across LLM calls</b>. Each call's input is
-      synthesized from a subset of it; the output is parsed back into variables.</div>
-    </div>
-    <div class="v ok">overlap<small>faithful</small></div>
-    <div class="box solid">
-      <div class="ttl">WorkingMemory</div>
-      <div class="loc">memory.py:400 · compose() :423</div>
-      <div class="d"><code>compose()</code> builds the beat's input from a subset;
-      <code>absorb()</code> parses the JSON back. Carries <code>intend</code> and
-      <code>last_outcome</code> between beats.</div>
-    </div>
+  <div class="box fill-blue w1">
+    <div class="ttl">Working memory</div>
+    <div class="d">A data structure that <b>persists across LLM calls</b>. Each call's input is
+    synthesized from a subset of it; the output is parsed back into variables.</div>
+  </div>
+  <div class="v ok"><span class="ring">overlap</span><small>faithful</small></div>
+  <div class="box ink-blue w2">
+    <div class="ttl">WorkingMemory</div>
+    <div class="loc">memory.py:400 · compose() :423</div>
+    <div class="d"><code>compose()</code> builds the beat's input from a subset;
+    <code>absorb()</code> parses the JSON back. Carries <code>intend</code> and
+    <code>last_outcome</code> between beats.</div>
+  </div>
 
-    <div class="box solid">
-      <div class="ttl">Episodic memory</div>
-      <div class="d">Experience from earlier decision cycles, retrieved into working memory
-      during planning. The agent writes here by living.</div>
-    </div>
-    <div class="v part">overlap<small>simplified</small></div>
-    <div class="box">
-      <div class="ttl">EpisodicMemory</div>
-      <div class="loc">memory.py:196 · retrieve() :286</div>
-      <div class="d">Append-only, budgeted to <b>6 per beat</b>. Decays and evicts — <b>never
-      consolidates.</b></div>
-    </div>
+  <div class="box fill-blue w3">
+    <div class="ttl">Episodic memory</div>
+    <div class="d">Experience from earlier decision cycles, retrieved into working memory
+    during planning. The agent writes here by living.</div>
+  </div>
+  <div class="v part"><span class="ring">overlap</span><small>simplified</small></div>
+  <div class="box ink-blue w1">
+    <div class="ttl">EpisodicMemory</div>
+    <div class="loc">memory.py:196 · retrieve() :286</div>
+    <div class="d">Append-only, budgeted to <b>6 per beat</b>. Decays and evicts —
+    <b>never consolidates.</b></div>
+  </div>
 
-    <div class="box solid">
-      <div class="ttl">Semantic memory</div>
-      <div class="d">Knowledge about the world <b>and itself</b>. Seeded from an external source.
-      Writing here is the <b>safe</b> learning action.</div>
-    </div>
-    <div class="v part">overlap<small>read only</small></div>
-    <div class="box">
-      <div class="ttl">SemanticMemory</div>
-      <div class="loc">memory.py:87 · body_line() :143 · write() :182</div>
-      <div class="d">The seven authored prose files, plus the persona's <b>body</b>.
-      <code>write()</code> returns <code>False</code> — a deliberate no-op.</div>
-    </div>
+  <div class="box fill-blue w2">
+    <div class="ttl">Semantic memory</div>
+    <div class="d">Knowledge about the world <b>and itself</b>. Seeded from an external
+    source. Writing here is the <b>safe</b> learning action.</div>
+  </div>
+  <div class="v part"><span class="ring">overlap</span><small>read only</small></div>
+  <div class="box ink-blue w3">
+    <div class="ttl">SemanticMemory</div>
+    <div class="loc">memory.py:87 · body_line() :143 · write() :182</div>
+    <div class="d">The seven authored prose files, plus the persona's <b>body</b>.
+    <code>write()</code> returns <code>False</code> — a deliberate no-op.</div>
+  </div>
 
-    <div class="box solid">
-      <div class="ttl">Procedural memory</div>
-      <div class="d">Implicit (the model's weights) plus explicit (the agent's code). <b>Designer
-      only</b> — writing here "can subvert the designer's intentions".</div>
-    </div>
-    <div class="v ok">overlap<small>incl. the caution</small></div>
-    <div class="box solid">
-      <div class="ttl">ProceduralMemory</div>
-      <div class="loc">memory.py:344</div>
-      <div class="d">The action vocabulary only. <b>Never written by the model</b> — the paper's
-      caution, taken literally.</div>
-    </div>
+  <div class="box fill-blue w1">
+    <div class="ttl">Procedural memory</div>
+    <div class="d">Implicit (the model's weights) plus explicit (the agent's code).
+    <b>Designer only</b> — writing here "can subvert the designer's intentions".</div>
+  </div>
+  <div class="v ok"><span class="ring">overlap</span><small>incl. the caution</small></div>
+  <div class="box ink-blue w2">
+    <div class="ttl">ProceduralMemory</div>
+    <div class="loc">memory.py:344</div>
+    <div class="d">The action vocabulary only. <b>Never written by the model</b> — the
+    paper's caution, taken literally.</div>
+  </div>
 
-    <div class="box">
-      <div class="ttl">Internal actions</div>
-      <div class="d">reasoning · retrieval · <b>learning</b></div>
-    </div>
-    <div class="v no">absent<small>2 of 3 present</small></div>
-    <div class="box">
-      <div class="ttl">Internal actions</div>
-      <div class="loc">reasoning.py:453 · memory.py:286 · —</div>
-      <div class="d">reasoning ✓ &nbsp; retrieval ✓ &nbsp; <b style="color:var(--no)">learning ✗</b></div>
-    </div>
+  <div class="box fill-grey w3">
+    <div class="ttl">Internal actions</div>
+    <div class="d">reasoning · retrieval · <b>learning</b></div>
+  </div>
+  <div class="v no"><span class="ring">absent</span><small>2 of 3 present</small></div>
+  <div class="box ink-blue w1">
+    <div class="ttl">Internal actions</div>
+    <div class="loc">reasoning.py:453 · memory.py:286 · —</div>
+    <div class="d">reasoning ✓ &nbsp; retrieval ✓ &nbsp;
+    <b style="color:var(--red)">learning ✗</b></div>
+  </div>
 
-    <div class="box">
-      <div class="ttl">External actions</div>
-      <div class="d">Whatever the environment permits. CoALA does not specify these.</div>
-    </div>
-    <div class="v ours">ours<small>widened</small></div>
-    <div class="box">
-      <div class="ttl">External actions</div>
-      <div class="loc">memory.py:358 · actions.py</div>
-      <div class="d">4 seat axes · vending · table · <code>stay</code> · <b>stand</b> / <code>sit</code>.
-      <code>stand</code> is hard-gated to the stopped vehicle
-      (<code>world.Cabin.can_stand</code>); a refusal comes back as a real outcome, so the
-      limit is learnable rather than merely announced.</div>
-    </div>
+  <div class="box fill-grey w2">
+    <div class="ttl">External actions</div>
+    <div class="d">Whatever the environment permits. CoALA does not specify these.</div>
+  </div>
+  <div class="v ours"><span class="ring">ours</span><small>widened</small></div>
+  <div class="box ink-blue w3">
+    <div class="ttl">External actions</div>
+    <div class="loc">memory.py:358 · actions.py</div>
+    <div class="d">4 seat axes · vending · table · <code>stay</code> ·
+    <b>stand</b> / <code>sit</code>. <code>stand</code> is hard-gated to the stopped vehicle
+    (<code>world.Cabin.can_stand</code>); a refusal comes back as a real outcome, so the
+    limit is learnable rather than merely announced.</div>
+  </div>
 
-    <div class="box">
-      <div class="ttl">Decision process</div>
-      <div class="d">A <i>generalized</i> process that chooses actions from the action space, given
-      what retrieval put in working memory.</div>
-    </div>
-    <div class="v ours">ours<small>not CoALA</small></div>
-    <div class="box">
-      <div class="ttl">The LLM decides</div>
-      <div class="loc">cognition.py:821 · the branch at :893</div>
-      <div class="d">The sole decider. Python supplies the body and the safety clamps. The rules
-      argmax below is <b>unreachable</b> while a model is present — line 893 takes
-      <code>_llm_cycle()</code> and returns.</div>
-    </div>
+  <div class="box fill-grey w1">
+    <div class="ttl">Decision process</div>
+    <div class="d">A <i>generalized</i> process that chooses actions from the action space,
+    given what retrieval put in working memory.</div>
+  </div>
+  <div class="v ours"><span class="ring">ours</span><small>not CoALA</small></div>
+  <div class="box ink-blue w2">
+    <div class="ttl">The LLM decides</div>
+    <div class="loc">cognition.py:821 · the branch at :893</div>
+    <div class="d">The sole decider. Python supplies the body and the safety clamps. The
+    rules argmax below is <b>unreachable</b> while a model is present — line 893 takes
+    <code>_llm_cycle()</code> and returns.</div>
+  </div>
 
 </div>
 
 <div class="legend">
-  <span><i style="background:var(--ok)"></i>overlap — the paper's idea, faithfully</span>
-  <span><i style="background:var(--part)"></i>simplified — ours, and smaller</span>
-  <span><i style="background:var(--no)"></i>absent — not implemented at all</span>
-  <span><i style="background:var(--ours)"></i>ours — a decision CoALA does not make</span>
+  <span><i style="background:var(--green)"></i>overlap — the paper's idea, faithfully</span>
+  <span><i style="background:var(--orange)"></i>simplified — ours, and smaller</span>
+  <span><i style="background:var(--red)"></i>absent — not implemented at all</span>
+  <span><i style="background:var(--blue)"></i>ours — a decision CoALA does not make</span>
 </div>
 
-<h2>2 · The same beat, in both</h2>
+<h2><span class="n">2</span> · The same beat, in both</h2>
 
-<p>The correspondence above is the static picture. This is the moving one, because the part that
-usually stays unclear is <i>where memory meets the decision</i>.</p>
+<p>The correspondence above is the static picture. This is the moving one, because the part
+that usually stays unclear is <i>where memory meets the decision</i>.</p>
 
 <div class="flow">
-  <div class="fnode"><b>RETRIEVAL</b>episodic → working</div>
+  <div class="fnode w1"><b>RETRIEVAL</b>episodic → working</div>
   <div class="farrow">→</div>
-  <div class="fnode"><b>WORKING</b>the only thing the model sees</div>
+  <div class="fnode w2"><b>WORKING</b>the only thing the model sees</div>
   <div class="farrow">→</div>
-  <div class="fnode"><b>REASONING</b>decide() returns JSON</div>
+  <div class="fnode w3"><b>REASONING</b>decide() returns JSON</div>
   <div class="farrow">→</div>
-  <div class="fnode"><b>ABSORB</b>output → variables</div>
+  <div class="fnode w1"><b>ABSORB</b>output → variables</div>
   <div class="farrow">→</div>
-  <div class="fnode"><b>ACT</b>whitelisted, world clamps</div>
+  <div class="fnode w2"><b>ACT</b>whitelisted, world clamps</div>
   <div class="farrow">↺</div>
 </div>
 
@@ -244,70 +309,71 @@ usually stays unclear is <i>where memory meets the decision</i>.</p>
 appears:</p>
 
 <div class="flow">
-  <div class="fnode"><b>ACT</b>something happened</div>
+  <div class="fnode w3"><b>ACT</b>something happened</div>
   <div class="farrow">→</div>
-  <div class="fnode miss"><b>CONSOLIDATE</b>compress into a reusable memory</div>
-  <div class="farrow" style="color:var(--no)">✗</div>
-  <div class="fnode miss"><b>LEARN</b>write to semantic / procedural</div>
+  <div class="fnode gone w1"><b>CONSOLIDATE</b>compress into a reusable memory</div>
+  <div class="farrow x">✗</div>
+  <div class="fnode gone w2"><b>LEARN</b>write to semantic / procedural</div>
 </div>
 
 <div class="note">
   <b>Read that second row as the honest summary of this system.</b> The agent remembers
-  <i>one conversation</i>, well. It does not get better at anything. Every episode it stores is
-  re-derived by retrieval rather than turned into a lesson, so nothing it did on beat 40 changes
-  how it reasons on beat 41 beyond that episode still being in the budget of six.
+  <i>one conversation</i>, well. It does not get better at anything. Every episode it stores
+  is re-derived by retrieval rather than turned into a lesson, so nothing it did on beat 40
+  changes how it reasons on beat 41 beyond that episode still being inside the budget of six.
 </div>
 
-<h2>3 · Why "blackboard" is the right word</h2>
+<h2><span class="n">3</span> · Why "blackboard" is the right word</h2>
 
-<p>This diagram is not only a comparison — it is the oldest shape in the field. The
-<b>blackboard architecture</b> comes from classic AI (Lenat's DENDRAL): a shared board where
-specialists independently read from and write to a common knowledge base, with no expert talking
-directly to another. CoALA is that pattern with the regions named.</p>
+<p>Careful, because this page is a whiteboard and the word means something else entirely.
+The <b>blackboard architecture</b> is the oldest shape in the field — Lenat's DENDRAL, 1970s:
+a shared board where specialists independently read from and write to a common knowledge
+base, with no expert talking directly to another. CoALA is that pattern with the regions
+named. Nothing to do with the colour of this page.</p>
 
-<table style="width:100%; border-collapse:collapse; margin:14px 0; font-size:13.5px">
+<table>
   <thead><tr>
-    <th style="text-align:left; padding:9px 10px; border:1px dashed rgba(233,231,222,.3); font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--chalk-dim)">CLASSIC BLACKBOARD</th>
-    <th style="text-align:left; padding:9px 10px; border:1px dashed rgba(233,231,222,.3); font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--chalk-dim)">COALA</th>
-    <th style="text-align:left; padding:9px 10px; border:1px dashed rgba(233,231,222,.3); font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--chalk-dim)">OURS</th>
+    <th>CLASSIC BLACKBOARD</th><th>COALA</th><th>OURS</th>
   </tr></thead>
   <tbody>
     <tr>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18); color:var(--chalk-dim)">The shared blackboard</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">Working memory</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)"><code>WorkingMemory.compose()</code> · <code>memory.py:423</code></td>
+      <td>The shared blackboard</td>
+      <td>Working memory</td>
+      <td><code>WorkingMemory.compose()</code> · <code>memory.py:423</code></td>
     </tr>
     <tr>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18); color:var(--chalk-dim)">Knowledge sources</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">Episodic + semantic</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">The two read paths</td>
+      <td>Knowledge sources</td>
+      <td>Episodic + semantic</td>
+      <td>The two read paths</td>
     </tr>
     <tr>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18); color:var(--chalk-dim)">Specialists</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">Internal actions</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">reasoning, retrieval — <span style="color:var(--no)">no learning</span></td>
+      <td>Specialists</td>
+      <td>Internal actions</td>
+      <td>reasoning, retrieval — <b style="color:var(--red)">no learning</b></td>
     </tr>
     <tr>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18); color:var(--chalk-dim)">The scheduler</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">The decision process</td>
-      <td style="padding:8px 10px; border:1px dashed rgba(233,231,222,.18)">The model, at <code>cognition.py:821</code></td>
+      <td>The scheduler</td>
+      <td>The decision process</td>
+      <td>The model, at <code>cognition.py:821</code></td>
     </tr>
   </tbody>
 </table>
 
 <div class="warn">
-  <b>The difference that matters.</b> In DENDRAL the specialists were <i>different programs</i> —
-  a parser and a planner knew different things. In ours there is <b>one</b> specialist: the model.
-  The four regions still exist, but only procedural memory has a genuinely non-model author. That
-  is why the action space has to be written by hand and why the memory's write path is a no-op —
-  with a single author, everything the agent "learns" would be the model rewriting its own
-  instructions.
+  <b>The difference that matters.</b> In DENDRAL the specialists were <i>different programs</i>
+  — a parser and a planner knew different things. In ours there is <b>one</b> specialist:
+  the model. The four regions still exist, but only procedural memory has a genuinely
+  non-model author. That is why the action space has to be written by hand, and why the
+  memory's write path is a no-op: with a single author, everything the agent "learned"
+  would be the model rewriting its own instructions.
 </div>
 
-<h2>4 · Mermaid source</h2>
+<h2><span class="n">4</span> · Mermaid source</h2>
 
-<p>If you want this as text to paste into a renderer, or to redraw later:</p>
-<pre><span class="c">%% CoALA (left) vs ours (right). Save as .mmd or paste into any Mermaid renderer.</span>
+<p>If you want this as text to paste into a renderer — Miro, Mermaid Live, anything — or to
+redraw it later:</p>
+
+<pre><span class="c">%% CoALA (left) vs ours (right). Paste into any Mermaid renderer.</span>
 flowchart LR
   subgraph COALA[<b>CoALA</b> · arXiv:2309.02427]
     direction TB
@@ -325,33 +391,34 @@ flowchart LR
     OS["SemanticMemory <span class='c'>memory.py:87</span>"]
     OP["ProceduralMemory <span class='c'>memory.py:344</span>"]
     OI["Internal actions<br/>reasoning · retrieval · <b>no learning</b>"]
-    OD["Decision: the LLM <span class='c'>cognition.py:887</span>"]
+    OD["Decision: the LLM <span class='c'>cognition.py:821</span>"]
   end
 
-  CE -<span class="s">|same</span>| OE
-  CS -<span class="s">|read only</span>| OS
-  CP -<span class="s">|same</span>| OP
   CW -<span class="s">|same</span>| OW
+  CE -<span class="s">|simplified</span>| OE
+  CS -<span class="k">|read only</span>| OS
+  CP -<span class="s">|incl. caution</span>| OP
   CI -<span class="d">|2 of 3</span>| OI
   OI -.->|we chose this| OD
 
-  OE -<span class="c">|never consolidated</span>| X["<b>✗ no learning</b>"]
+  OE -<span class="c">|never consolidated</span>| X["<b>NO LEARNING</b>"]
   OS -<span class="c">|write() returns False</span>| X
 
-  classDef ok <span class="k">stroke:#8fd6c0</span>;
-  classDef no <span class="k">stroke:#e08a80,stroke-dasharray:4 3</span>;
-  class X no;</pre>
+  classDef gone <span class="k">stroke:#be123c,stroke-dasharray:5 4,color:#be123c</span>;
+  class X gone;</pre>
 
 <footer>
-  cognitive-agent-literature · schematic · drawn 2026-10-01 · every <code>file:line</code> on this
-  page was opened and read before publishing: <b>memory.py:400/423, 358, 196, 286, 87, 143, 182,
-  344 · reasoning.py:453 · cognition.py:821, 893</b> — and four of the first drafts of these
-  citations were wrong, which is why they are listed rather than trusted. References are to the
-  cabin-agent-sim <i>working tree</i>, which is <b>not yet committed</b>. · companion to
-  <a href="tutorial-cognitive-v3.html">tutorial-cognitive-v3.html</a> ·
+  cognitive-agent-literature · whiteboard · redrawn 2026-10-01 · every <code>file:line</code> on
+  this page was opened and read before publishing:
+  <b>memory.py:400/423, 358, 196, 286, 87, 143, 182, 344 · reasoning.py:453 · cognition.py:821,
+  893</b> — four of the first ten citations were wrong, including one that named the wrong
+  line as the decision point, which is why they are listed instead of trusted. References are
+  to the cabin-agent-sim <i>working tree</i>, which is <b>not yet committed</b>. ·
+  companion to <a href="tutorial-cognitive-v3.html">tutorial-cognitive-v3.html</a> ·
   papers: CoALA arXiv:2309.02427 · Generative Agents (Park et al. 2023) · arXiv:2502.06975
 </footer>
 
+</div>
 </div>
 </body>
 </html>
