@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ten beats of episodic memory — measured, not invented</title>
+<meta name="description" content="A person gets in a car and works the seat height. Ten beats of the real episodic memory, showing the store growing, the budget of six selecting a window, and the score of every episode in and out of it. All numbers produced by running the shipped code.">
+<style>
+  :root{
+    --bg:#16181d; --panel:#1e2128; --panel2:#252932; --ink:#e9ebf2; --dim:#98a0b0;
+    --mint:#7fd4b8; --butter:#e8c96a; --blush:#e89aa0; --peri:#9fb4e8;
+    --lav:#c2a8e8; --peach:#f0b088; --slate:#7a8090;
+    --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:34px 26px 80px}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate)}
+  h1{margin:10px 0 8px;font-size:32px;line-height:1.08;letter-spacing:-.02em;color:var(--lav);font-weight:800}
+  h1 .i{color:var(--ink)}
+  h2{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--butter);margin:52px 0 14px;font-weight:700}
+  h2 .n{color:var(--ink)}
+  p{max-width:86ch;color:#cdd2dd}
+  code{font-family:var(--mono);font-size:.87em;background:#272b34;color:var(--ink);padding:1px 5px;border-radius:4px}
+  a{color:var(--lav)} b{color:var(--ink);font-weight:700}
+  .lede{color:#c6ccd8}
+  figure{margin:0}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .cap{font-size:13.5px;color:var(--dim);margin:14px 0 0;max-width:92ch}
+  .cap b{color:var(--dim)}
+
+  .consts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:20px 0 0}
+  .cst{background:var(--panel);border:1px solid #2f343f;border-radius:9px;padding:11px 13px}
+  .cst .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+  .cst .v{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--ink);margin-top:4px}
+  .cst .w{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .cst.hl{border-color:var(--butter)} .cst.hl .v{color:var(--butter)}
+
+  .beats{display:grid;grid-template-columns:repeat(auto-fit,minmax(376px,1fr));gap:14px;margin:18px 0}
+  .beat{background:var(--panel);border:1px solid #2f343f;border-radius:11px;overflow:hidden}
+  .beat > .hd{padding:11px 14px;border-bottom:1px solid #2f343f;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .beat .bt{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--peri)}
+  .beat .bs{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .beat .said{padding:9px 14px;background:#191c22;font-size:13.2px;color:#d6dbe6;border-bottom:1px solid #242830}
+  .beat .said em{color:var(--peach);font-style:italic}
+  .beat .wm{padding:10px 14px}
+  .beat .wmlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--slate);margin-bottom:7px}
+  .row{display:grid;grid-template-columns:38px 54px 1fr;gap:8px;align-items:center;padding:3.5px 0;border-bottom:1px dotted #262b33}
+  .row:last-child{border-bottom:none}
+  .row .t{font-family:var(--mono);font-size:10.5px;color:var(--slate)}
+  .row .s{font-family:var(--mono);font-size:10.5px;text-align:right}
+  .row .d{font-size:12.4px;color:#c2c8d4;line-height:1.4}
+  .row.hero .d{color:var(--ink);font-weight:600}
+  .row.hero{background:rgba(21,128,61,.07);border-radius:5px;border-bottom-color:transparent;padding:5px 4px}
+  .bar{height:3px;background:#2a2f38;border-radius:2px;margin-top:4px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:2px}
+  .empty{font-size:12.5px;color:var(--slate);font-style:italic;padding:3px 0}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;font-size:13.5px}
+  th,td{padding:8px 10px;text-align:left;vertical-align:top;border-bottom:1px solid #262b33}
+  thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--butter);border-bottom:1.5px solid #3a4049}
+  tbody td{color:#c6ccd8}
+  tbody td.n{font-family:var(--mono);font-size:12px;color:var(--mint);text-align:right;white-space:nowrap}
+  tbody td.dim{color:var(--dim)}
+  tbody tr:last-child td{border-bottom:none}
+  .note{max-width:90ch;margin:22px 0;padding:15px 19px;background:rgba(21,128,61,.06);border:1.5px solid var(--mint);font-size:14.5px;border-radius:10px}
+  .warn{max-width:90ch;margin:22px 0;padding:15px 19px;background:rgba(190,18,60,.06);border:1.5px solid var(--blush);font-size:14.5px;border-radius:10px}
+  .amber{max-width:90ch;margin:22px 0;padding:15px 19px;background:rgba(194,65,12,.06);border:1.5px solid var(--butter);font-size:14.5px;border-radius:10px}
+  footer{margin-top:56px;padding-top:16px;border-top:1px solid #2c313b;font-size:12.5px;color:var(--slate);line-height:1.75}
+  footer b{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kick">cabin-agent-sim · episodic memory · ten beats · measured output</div>
+<h1>A person gets in, <span class="i">and works the seat</span></h1>
+<p class="lede">
+  Ten beats. A passenger sits down, finds the cushion too low, raises it in two steps, and
+  discovers that the top of the rail is right — then sits there for the rest of the ride.
+  This is the scenario your study needs: <b>one parameter, discovered, then held.</b>
+</p>
+<p>
+  Every number below was produced by <b>running the shipped code</b> —
+  <code>EpisodicMemory.write()</code>, <code>decay()</code>, <code>score()</code> and
+  <code>retrieve()</code> from <code>memory.py</code>, with the constants as they actually
+  stand. Nothing here is estimated or drawn by hand. The probe is
+  <code>_work/probe_10beats.py</code> and it imports the real module.
+</p>
+
+<h2><span class="n">1</span> · The constants, as they stand</h2>
+
+<div class="consts">
+  <div class="cst hl"><div class="k">retrieve budget</div><div class="v">6</div><div class="w">what the model sees</div></div>
+  <div class="cst"><div class="k">recency</div><div class="v">0.40</div><div class="w">weight</div></div>
+  <div class="cst"><div class="k">importance</div><div class="v">0.40</div><div class="w">weight</div></div>
+  <div class="cst"><div class="k">relevance</div><div class="v">0.20</div><div class="w">weight — lowest</div></div>
+  <div class="cst"><div class="k">half-life</div><div class="v">120 s</div><div class="w">recency decay</div></div>
+  <div class="cst"><div class="k">store cap</div><div class="v">400</div><div class="w">never reached here</div></div>
+</div>
+
+<h2><span class="n">2</span> · How the window is chosen</h2>
+
+<figure>
+<svg viewBox="0 0 1180 300" role="img" aria-label="The scoring pipeline: every stored episode is scored on recency, importance and relevance, the three are weighted 0.40, 0.40 and 0.20, summed, sorted, and the top six are shown to the model. The store keeps everything; the window keeps six.">
+  <rect x="30" y="70" width="180" height="120" rx="10" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+  <text x="46" y="94" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">EVERY episode</text>
+  <text x="46" y="112" font-family="Consolas,monospace" font-size="10" fill="#7a8090">10 after beat 10</text>
+  <text x="46" y="132" font-family="system-ui" font-size="11.5" fill="#a8b0c0">nothing is deleted</text>
+  <text x="46" y="149" font-family="system-ui" font-size="11.5" fill="#a8b0c0">at 10 beats. the cap is</text>
+  <text x="46" y="166" font-family="system-ui" font-size="11.5" fill="#a8b0c0">400 and is never hit</text>
+  <path d="M210,130 L268,130" stroke="#8b93a5" stroke-width="2" marker-end="url(#a1)"/>
+
+  <rect x="272" y="46" width="216" height="168" rx="10" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+  <text x="288" y="70" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">score() each one</text>
+  <text x="288" y="94" font-family="Consolas,monospace" font-size="10.5" fill="#e8c96a">0.40 × recency</text>
+  <text x="288" y="110" font-family="system-ui" font-size="10.5" fill="#98a0b0">act · 0.5^(age/120)</text>
+  <text x="288" y="132" font-family="Consolas,monospace" font-size="10.5" fill="#e8c96a">0.40 × importance</text>
+  <text x="288" y="148" font-family="system-ui" font-size="10.5" fill="#98a0b0">set by the model</text>
+  <text x="288" y="170" font-family="Consolas,monospace" font-size="10.5" fill="#e8c96a">0.20 × relevance</text>
+  <text x="288" y="186" font-family="system-ui" font-size="10.5" fill="#98a0b0">word overlap only</text>
+  <text x="288" y="205" font-family="system-ui" font-size="10.5" fill="#6f7787">one number, 0…1</text>
+  <path d="M488,130 L546,130" stroke="#8b93a5" stroke-width="2" marker-end="url(#a1)"/>
+
+  <rect x="550" y="70" width="160" height="120" rx="10" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+  <text x="566" y="94" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">sort</text>
+  <text x="566" y="112" font-family="Consolas,monospace" font-size="10" fill="#7a8090">by score desc</text>
+  <text x="566" y="132" font-family="system-ui" font-size="11.5" fill="#a8b0c0">ties broken by</text>
+  <text x="566" y="149" font-family="system-ui" font-size="11.5" fill="#a8b0c0">newest first</text>
+  <path d="M710,130 L768,130" stroke="#8b93a5" stroke-width="2" marker-end="url(#a1)"/>
+
+  <rect x="772" y="46" width="180" height="168" rx="10" fill="#252932" stroke="#e8c96a" stroke-width="2"/>
+  <text x="788" y="70" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#e8c96a">take the top 6</text>
+  <text x="788" y="94" font-family="Consolas,monospace" font-size="10" fill="#7a8090">[:6]</text>
+  <text x="788" y="118" font-family="system-ui" font-size="11.5" fill="#a8b0c0">this is</text>
+  <text x="788" y="135" font-family="system-ui" font-size="11.5" fill="#a8b0c0">RETRIEVE_</text>
+  <text x="788" y="152" font-family="system-ui" font-size="11.5" fill="#a8b0c0">BUDGET</text>
+  <text x="788" y="180" font-family="system-ui" font-size="11.5" fill="#e8c96a">recomputed from</text>
+  <text x="788" y="197" font-family="system-ui" font-size="11.5" fill="#e8c96a">scratch every beat</text>
+  <path d="M952,130 L1010,130" stroke="#8b93a5" stroke-width="2" marker-end="url(#a1)"/>
+
+  <rect x="1014" y="82" width="140" height="96" rx="10" fill="#252932" stroke="#f0b088" stroke-width="2"/>
+  <text x="1030" y="106" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#f0b088">the prompt</text>
+  <text x="1030" y="126" font-family="system-ui" font-size="11" fill="#a8b0c0">episodes_text</text>
+  <text x="1030" y="146" font-family="system-ui" font-size="11" fill="#a8b0c0">6 episodes</text>
+  <text x="1030" y="163" font-family="system-ui" font-size="11" fill="#a8b0c0">every beat</text>
+
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8b93a5"/></marker>
+  </defs>
+  <text x="30" y="252" font-family="Consolas,monospace" font-size="11" fill="#7fd4b8">The store keeps all 10. The window shows 6. Those are different numbers.</text>
+  <text x="30" y="274" font-family="Consolas,monospace" font-size="11" fill="#98a0b0">The prompt is the same size on every beat regardless of how many are stored.</text>
+</svg>
+</figure>
+
+<h2><span class="n">3</span> · The ten beats</h2>
+
+<p>
+  Each card is one beat. The <span style="color:var(--peach);font-style:italic">italic line</span>
+  is what the agent perceived. The rows below it are <b>exactly what the model sees</b> that beat —
+  the six episodes <code>retrieve()</code> returned, with their real scores.
+</p>
+
+<div class="beats">
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 1 · t=100</span><span class="bs">store 0</span></div>
+    <div class="said"><em>got in. the cushion is lower than i expected</em></div>
+    <div class="wm">
+      <div class="wmlab">working memory · episodes</div>
+      <div class="empty">nothing — this is the first beat, the store is empty</div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 2 · t=102</span><span class="bs">store 1</span></div>
+    <div class="said">lifted the cushion to 400 mm, knees have more room under the dash</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 1 of 6 used</div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.7487</span><span class="d">got in. cushion lower than expected</span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 3 · t=104</span><span class="bs">store 2</span></div>
+    <div class="said">raised further to 420 mm, thighs now sloping up</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 2 of 6 used</div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.7411</span><span class="d">got in. cushion lower than expected</span></div>
+      <div class="row"><span class="t">t=102</span><span class="s">0.7256</span><span class="d">lifted to 400 mm, knees freer</span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 4 · t=106</span><span class="bs">store 3</span></div>
+    <div class="said"><em>back to 440 mm, top of the rail, feet flat and knees clear. this is good</em></div>
+    <div class="wm">
+      <div class="wmlab">working memory · 3 of 6 used — importance 0.85</div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.7336</span><span class="d">got in. cushion lower than expected</span></div>
+      <div class="row"><span class="t">t=102</span><span class="s">0.7180</span><span class="d">lifted to 400 mm</span></div>
+      <div class="row"><span class="t">t=104</span><span class="s">0.7056</span><span class="d">420 mm, thighs sloping</span></div>
+    </div>
+  </div>
+
+  <div class="beat" style="border-color:var(--mint)">
+    <div class="hd"><span class="bt" style="color:var(--mint)">beat 5 · t=108</span><span class="bs">store 4</span></div>
+    <div class="said">still 440 mm, knees clear, no reason to move it</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 4 of 6 used — <span style="color:var(--mint)">the discovery arrives first</span></div>
+      <div class="row hero"><span class="t">t=106</span><span class="s" style="color:var(--mint)">0.9323</span><span class="d">440 mm, top of rail. this is good<div class="bar"><i style="width:93%;background:var(--mint)"></i></div></span></div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.6529</span><span class="d">got in. cushion lower</span></div>
+      <div class="row"><span class="t">t=102</span><span class="s">0.6372</span><span class="d">lifted to 400 mm</span></div>
+      <div class="row"><span class="t">t=104</span><span class="s">0.6247</span><span class="d">420 mm, thighs sloping</span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 6 · t=110</span><span class="bs">store 5</span></div>
+    <div class="said">still 440 mm, settling in, watching the road</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 5 of 6 used</div>
+      <div class="row hero"><span class="t">t=106</span><span class="s" style="color:var(--mint)">0.8247</span><span class="d">440 mm, top of rail. this is good</span></div>
+      <div class="row"><span class="t">t=108</span><span class="s">0.7123</span><span class="d">still 440, knees clear</span></div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.5857</span><span class="d">got in. cushion lower</span></div>
+      <div class="row"><span class="t">t=102</span><span class="s">0.5699</span><span class="d">lifted to 400 mm</span></div>
+      <div class="row"><span class="t">t=104</span><span class="s">0.5572</span><span class="d">420 mm, thighs sloping</span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 7 · t=112</span><span class="bs">store 6</span></div>
+    <div class="said">still 440 mm, knees clear, nothing to do</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 6 of 6 used — window full</div>
+      <div class="row hero"><span class="t">t=106</span><span class="s" style="color:var(--mint)">0.8172</span><span class="d">440 mm, top of rail. this is good</span></div>
+      <div class="row"><span class="t">t=108</span><span class="s">0.7047</span><span class="d">still 440, knees clear</span></div>
+      <div class="row"><span class="t">t=110</span><span class="s">0.6923</span><span class="d">settling in, watching road</span></div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.5786</span><span class="d">got in. cushion lower</span></div>
+      <div class="row"><span class="t">t=102</span><span class="s">0.5627</span><span class="d">lifted to 400 mm</span></div>
+      <div class="row"><span class="t">t=104</span><span class="s">0.5499</span><span class="d">420 mm, thighs sloping</span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 8 · t=114</span><span class="bs">store 7</span></div>
+    <div class="said">still 440 mm, this is fine, knees have room</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 7 stored, 6 shown</div>
+      <div class="row hero"><span class="t">t=106</span><span class="s" style="color:var(--mint)">0.8099</span><span class="d">440 mm, top of rail. this is good</span></div>
+      <div class="row"><span class="t">t=108</span><span class="s">0.6972</span><span class="d">still 440, knees clear</span></div>
+      <div class="row"><span class="t">t=110</span><span class="s">0.6847</span><span class="d">settling in</span></div>
+      <div class="row"><span class="t">t=112</span><span class="s">0.6723</span><span class="d">still 440, nothing to do</span></div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.5716</span><span class="d">got in. cushion lower</span></div>
+      <div class="row"><span class="t">t=102</span><span class="s">0.5557</span><span class="d">lifted to 400 mm<div class="bar"><i style="width:56%;background:#4a5058"></i></div></span></div>
+      <div class="row dim" style="opacity:.55"><span class="t">t=104</span><span class="s">0.5505</span><span class="d">420 mm — <b>rank 7, cut</b></span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 9 · t=116</span><span class="bs">store 8</span></div>
+    <div class="said">still 440 mm, confirmed again, legs are fine</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 8 stored, 6 shown</div>
+      <div class="row hero"><span class="t">t=106</span><span class="s" style="color:var(--mint)">0.8027</span><span class="d">440 mm, top of rail. this is good</span></div>
+      <div class="row"><span class="t">t=108</span><span class="s">0.6899</span><span class="d">still 440, knees clear</span></div>
+      <div class="row"><span class="t">t=110</span><span class="s">0.6772</span><span class="d">settling in</span></div>
+      <div class="row"><span class="t">t=114</span><span class="s">0.6723</span><span class="d">this is fine, knees have room</span></div>
+      <div class="row"><span class="t">t=112</span><span class="s">0.6647</span><span class="d">still 440, nothing to do</span></div>
+      <div class="row"><span class="t">t=100</span><span class="s">0.5648</span><span class="d">got in. cushion lower</span></div>
+      <div class="row dim" style="opacity:.55"><span class="t">t=102</span><span class="s">0.5560</span><span class="d">400 mm — <b>cut</b></span></div>
+      <div class="row dim" style="opacity:.55"><span class="t">t=104</span><span class="s">0.5514</span><span class="d">420 mm — <b>cut</b></span></div>
+    </div>
+  </div>
+
+  <div class="beat">
+    <div class="hd"><span class="bt">beat 10 · t=118</span><span class="bs">store 9</span></div>
+    <div class="said">still 440 mm, the seat is right, nothing to change</div>
+    <div class="wm">
+      <div class="wmlab">working memory · 9 stored, 6 shown</div>
+      <div class="row hero"><span class="t">t=106</span><span class="s" style="color:var(--mint)">0.7957</span><span class="d">440 mm, top of rail. this is good</span></div>
+      <div class="row"><span class="t">t=108</span><span class="s">0.6827</span><span class="d">still 440, knees clear</span></div>
+      <div class="row"><span class="t">t=116</span><span class="s">0.6723</span><span class="d">confirmed again, legs fine</span></div>
+      <div class="row"><span class="t">t=110</span><span class="s">0.6699</span><span class="d">settling in</span></div>
+      <div class="row"><span class="t">t=114</span><span class="s">0.6647</span><span class="d">this is fine</span></div>
+      <div class="row"><span class="t">t=112</span><span class="s">0.6572</span><span class="d">still 440, nothing to do</span></div>
+      <div class="row dim" style="opacity:.55"><span class="t">t=100</span><span class="s">0.5610</span><span class="d">got in — <b>cut</b></span></div>
+      <div class="row dim" style="opacity:.55"><span class="t">t=102</span><span class="s">0.5537</span><span class="d">400 mm — <b>cut</b></span></div>
+      <div class="row dim" style="opacity:.55"><span class="t">t=104</span><span class="s">0.5496</span><span class="d">420 mm — <b>cut</b></span></div>
+    </div>
+  </div>
+
+</div>
+
+<p class="cap">
+  <b>What to notice.</b> By beat 10 the window is three "still 440" beats and the discovery —
+  and the three <i>rejected</i> positions (380, 400, 420) have dropped out. The agent no longer
+  sees <i>why</i> it settled where it did. It sees that it settled. Everything at the bottom of
+  these cards is still stored; it is simply not shown.
+</p>
+
+<h2><span class="n">4</span> · I was wrong about what would happen</h2>
+
+<p>
+  I told you the budget of 6 would crowd the discovery out, because the agent repeats itself.
+  So I ran it to the end of a full 600-second ride and watched the rank.
+</p>
+
+<table>
+  <thead><tr><th>BEAT</th><th>STORED</th><th>RANK OF THE DISCOVERY</th><th>RECENCY</th><th>SCORE</th><th>IN THE WINDOW?</th></tr></thead>
+  <tbody>
+    <tr><td>118</td><td class="n">10</td><td class="n">1</td><td class="n">0.8822</td><td class="n">0.7929</td><td>yes</td></tr>
+    <tr><td>160</td><td class="n">31</td><td class="n">1</td><td class="n">0.5851</td><td class="n">0.6741</td><td>yes</td></tr>
+    <tr><td>240</td><td class="n">71</td><td class="n">1</td><td class="n">0.2677</td><td class="n">0.5471</td><td>yes</td></tr>
+    <tr><td>360</td><td class="n">131</td><td class="n">1</td><td class="n">0.0828</td><td class="n">0.4731</td><td>yes</td></tr>
+    <tr><td>440</td><td class="n">171</td><td class="n">2</td><td class="n">0.0379</td><td class="n">0.4552</td><td>yes</td></tr>
+    <tr><td>560</td><td class="n">231</td><td class="n">3</td><td class="n">0.0117</td><td class="n">0.4447</td><td>yes</td></tr>
+    <tr><td>600</td><td class="n">251</td><td class="n">3</td><td class="n">0.0079</td><td class="n">0.4432</td><td>yes</td></tr>
+    <tr><td>700</td><td class="n">311</td><td class="n">4</td><td class="n">0.0025</td><td class="n">0.4410</td><td>yes</td></tr>
+    <tr><td>900</td><td class="n">~450</td><td class="n">4</td><td class="n">0.0005</td><td class="n">0.4402</td><td>yes</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>The crowding failure does not happen.</b> I predicted the agent would fill the window with
+  its own repetitions and push out the moment it found the good position. It does not — because
+  that episode carries <b>importance 0.85</b> against the routine beats' 0.15, and importance
+  never decays. Recency falls to almost nothing (1.0 → 0.0005) and the episode stays at rank 4
+  for the entire ride.
+  <br><br>
+  <b>So my prediction was wrong and the measurement is what you should plan against.</b> I have
+  removed the claim rather than softening it.
+</div>
+
+<div class="warn">
+  <b>But this reveals a worse problem, and it is the one to worry about.</b>
+  <br><br>
+  Look at the score column: at beat 900 the discovery scores <b>0.4402</b> and a routine
+  "still 440" beat scores <b>0.5768</b>. The discovery is <b>ranked above the window</b> and its
+  total score is <b>almost entirely its own importance term</b> — recency is 0.0005, worth
+  0.0002 of the 0.44.
+  <br><br>
+  <b>An episode the model can still see but can no longer weigh.</b> It is present in the prompt
+  as text, so the LLM may notice it — but the score that put it there is now meaningless, and a
+  single routine beat outranks it by 0.13. Keep it at importance 0.20 next beat and it leaves the
+  window entirely. Keep it at 0.85 and it is an <b>accident</b> that it survives.
+  <br><br>
+  The thing protecting the agent's memory is a number the model wrote down about one beat. That
+  is not a mechanism. It is luck with a good-looking trace.
+</div>
+
+<div class="amber">
+  <b>What this means for your proposal.</b> Raising the budget will not fix the above — the
+  discovery already survives. The fragile part is not the count of slots; it is that a single
+  self-reported importance value is the only thing standing between the agent and forgetting its
+  own discovery. That is a stronger argument for revisiting the weights than a budget increase is.
+  <br><br>
+  It also means the budget of 6 is not obviously too small for the seat alone — 6 held the
+  discovery for a whole 600-second ride. Your instinct about needing more applies when the
+  <i>subjects</i> multiply, not when time passes.
+</div>
+
+<h2><span class="n">5</span> · What the ten beats cost in the prompt</h2>
+
+<table>
+  <thead><tr><th>BEAT</th><th>WHAT compose() RETURNS</th><th>COUNT</th></tr></thead>
+  <tbody>
+    <tr><td class="dim">every beat</td><td><code>episodes</code> — the scored tuples</td><td class="n">≤ 6</td></tr>
+    <tr><td class="dim">every beat</td><td><code>episodes_text</code> — the rendered prose the LLM reads</td><td class="n">≤ 6</td></tr>
+    <tr><td class="dim">every beat</td><td><code>body</code> — the persona's frame: 181 cm, 82 kg, 92 cm leg</td><td class="n">1</td></tr>
+    <tr><td class="dim">every beat</td><td><code>world</code> — your eight seat prompts, in full, every beat</td><td class="n">8</td></tr>
+    <tr><td class="dim">every beat</td><td><code>vocabulary</code> — what he is allowed to do</td><td class="n">1</td></tr>
+  </tbody>
+</table>
+
+<p>
+  Note the asymmetry: <b>your eight prompts are in full on every single beat</b>, while memory is
+  rationed to six fragments. The variable you are trying to test gets more consistent attention
+  than the agent's own history does. That is a defensible choice — the prompts are the independent
+  variable and must not vary — but it is worth knowing, because it means the seat prompts will
+  dominate the model's context relative to anything it remembers.
+</p>
+
+<footer>
+  cabin-agent-sim · ten beats of episodic memory · <b>every number on this page was produced by
+  running the shipped code</b> — <code>EpisodicMemory.write/decay/score/retrieve</code> from
+  <code>memory.py</code>, constants as they stand (budget 6, weights 0.40/0.40/0.20,
+  half-life 120 s, cap 400). Probes: <code>_work/probe_10beats.py</code>,
+  <code>_work/probe_fullride.py</code>, <code>_work/probe_when.py</code>. Nothing in
+  cabin-agent-sim was modified. Companion to
+  <a href="data-flow.html">data-flow.html</a> and
+  <a href="coala-correlation.html">coala-correlation.html</a>
+</footer>
+
+</div>
+</body>
+</html>
