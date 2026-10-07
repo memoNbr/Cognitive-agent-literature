@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cabin-Agent-Sim — the actual mathematics, from persona entry to episode end</title>
+<meta name="description" content="Every formula in the cabin agent simulation, read out of the source: the geometric fit model, first-order lag dynamics, exponential decay, the episodic retrieval scorer, the scripted ride, hard physical limits, and the measurement instruments. With the finding that the simulated physiology is deliberately withheld from the model.">
+<style>
+  :root{
+    --bg:#14161b; --panel:#1c1f26; --panel2:#23262f; --ink:#e9ebf2; --dim:#98a0b0;
+    --mint:#7fd4b8; --butter:#e8c96a; --blush:#e89aa0; --peri:#9fb4e8;
+    --lav:#c2a8e8; --peach:#f0b088; --slate:#7a8090;
+    --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1300px;margin:0 auto;padding:34px 26px 90px}
+  .kick{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate)}
+  h1{margin:10px 0 8px;font-size:33px;line-height:1.06;letter-spacing:-.022em;color:var(--lav);font-weight:800}
+  h1 .i{color:var(--ink)}
+  h2{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--butter);margin:56px 0 16px;font-weight:700}
+  h2 .n{color:var(--ink)}
+  h3{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--peri);margin:30px 0 12px;font-weight:700}
+  p{max-width:88ch;color:#cdd2dd}
+  code{font-family:var(--mono);font-size:.87em;background:#262a33;color:var(--ink);padding:1px 5px;border-radius:4px}
+  a{color:var(--lav)} b{color:var(--ink);font-weight:700}
+  .ref{font-family:var(--mono);font-size:.82em;color:var(--butter);background:#262a33;padding:2px 7px;border-radius:4px;border:1px solid #343a45;white-space:nowrap}
+  figure{margin:0}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .cap{font-size:13.5px;color:var(--dim);margin:14px 0 0;max-width:92ch}
+  .cap b{color:var(--dim)}
+
+  .formula{background:var(--panel);border:1px solid #2f343f;border-left:3px solid var(--peri);border-radius:9px;padding:14px 18px;margin:14px 0}
+  .formula.mint{border-left-color:var(--mint)}
+  .formula.butter{border-left-color:var(--butter)}
+  .formula.blush{border-left-color:var(--blush)}
+  .formula.lav{border-left-color:var(--lav)}
+  .formula .fn{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--ink);margin-bottom:9px}
+  .eq{font-family:var(--mono);font-size:13.5px;color:#dce1ec;background:#171a20;padding:12px 15px;border-radius:6px;overflow-x:auto;line-height:1.8;margin:9px 0;white-space:pre-wrap}
+  .eq .c{color:var(--slate)}
+  .eq .k{color:var(--butter)}
+  .eq .v{color:var(--mint)}
+  .eq .f{color:var(--peri)}
+  .formula .why{font-size:14px;color:#c2c8d4;margin-top:9px}
+  .formula .why b{color:var(--ink)}
+
+  .consts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:18px 0 0}
+  .cst{background:var(--panel);border:1px solid #2f343f;border-radius:9px;padding:11px 13px}
+  .cst .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+  .cst .v{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--ink);margin-top:4px}
+  .cst .w{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .cst.tau{border-color:var(--mint)} .cst.tau .v{color:var(--mint)}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin:14px 0;font-size:13.5px}
+  th,td{padding:8px 11px;text-align:left;vertical-align:top;border-bottom:1px solid #262b33}
+  thead th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--butter);border-bottom:1.5px solid #3a4049}
+  tbody td{color:#c6ccd8}
+  td.n{font-family:var(--mono);font-size:12px;text-align:right;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  .bar-cell{width:130px}
+  .bar{height:5px;background:#2a2f38;border-radius:3px;overflow:hidden;margin-top:4px}
+  .bar i{display:block;height:100%}
+
+  .note{max-width:92ch;margin:22px 0;padding:15px 19px;background:rgba(21,128,61,.06);border:1.5px solid var(--mint);font-size:14.5px;border-radius:10px}
+  .warn{max-width:92ch;margin:22px 0;padding:15px 19px;background:rgba(190,18,60,.06);border:1.5px solid var(--blush);font-size:14.5px;border-radius:10px}
+  .amber{max-width:92ch;margin:22px 0;padding:15px 19px;background:rgba(194,65,12,.06);border:1.5px solid var(--butter);font-size:14.5px;border-radius:10px}
+  .lavbox{max-width:92ch;margin:22px 0;padding:15px 19px;background:rgba(194,160,232,.06);border:1.5px solid var(--lav);font-size:14.5px;border-radius:10px}
+  .keys{display:flex;gap:18px;flex-wrap:wrap;margin:20px 0 0;padding-top:15px;border-top:1px solid #2c313b;font-size:13px;color:var(--dim)}
+  .keys span{display:flex;align-items:center;gap:7px}
+  .keys i{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .qa{background:var(--panel);border:1px solid #2f343f;border-radius:11px;padding:16px 20px;margin:16px 0}
+  .qa .q{font-family:var(--mono);font-size:12.5px;color:var(--butter);letter-spacing:.05em;margin-bottom:7px}
+  .qa .a{font-size:15px;color:#d6dbe6}
+  footer{margin-top:56px;padding-top:16px;border-top:1px solid #2c313b;font-size:12.5px;color:var(--slate);line-height:1.75}
+  footer b{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kick">cabin-agent-sim · the actual mathematics · every formula read from source</div>
+<h1>Persona enters. Episode ends.<br><span class="i">Here is every equation in between.</span></h1>
+<p>
+  This is not a summary of the design. It is the <b>arithmetic as it is written</b> — every
+  formula below was read out of the working tree on 2026-10-07 and the line numbers verified.
+  Where a formula has a hidden assumption or a consequence you would want to defend, that is
+  stated rather than smoothed over.
+</p>
+
+<div class="lavbox" style="margin-top:22px">
+  <b>Read this first, because it is the thing most likely to be asked.</b>
+  The simulation has a complete physiological model — a geometric fit function, a comfort
+  attractor, a trust formula, mood dynamics with asymmetric relaxation. <b>None of it reaches
+  the language model.</b> The prompt carries raw physical truth and the passenger's body, and
+  deliberately withholds every derived quantity. So the agent does not feel comfort; it is told
+  the seat is at 380 mm and must judge for itself.
+  <br><br>
+  This is a deliberate experimental control, documented at
+  <span class="ref">reasoning.py:228</span>, and it is what makes the agent's choices evidence
+  rather than arithmetic. But it also means the mathematics below is <b>the world, not the
+  mind</b> — and that distinction is the single most important thing to be clear about when
+  presenting this.
+</div>
+
+<h2><span class="n">1</span> · The pipeline, and where the mathematics lives</h2>
+
+<figure>
+<svg viewBox="0 0 1240 420" role="img" aria-label="The full pipeline from persona entry to episode end. The left lane is the authored input, the middle spine is the Python body carrying all the arithmetic, and the right lane is the model, which receives raw physical truth only and never the derived quantities.">
+<defs>
+  <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8b93a5"/></marker>
+  <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e89aa0"/></marker>
+</defs>
+
+<text x="150" y="26" font-family="Consolas,monospace" font-size="11" letter-spacing="1.8" fill="#e8c96a" text-anchor="middle">AUTHORED</text>
+<text x="620" y="26" font-family="Consolas,monospace" font-size="11" letter-spacing="1.8" fill="#9fb4e8" text-anchor="middle">THE BODY — all arithmetic lives here</text>
+<text x="1060" y="26" font-family="Consolas,monospace" font-size="11" letter-spacing="1.8" fill="#c2a8e8" text-anchor="middle">THE MIND</text>
+
+<rect x="40" y="44" width="220" height="86" rx="10" fill="#252932" stroke="#e8c96a" stroke-width="1.8"/>
+<text x="56" y="66" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#e8c96a">persona / prompts</text>
+<text x="56" y="84" font-family="system-ui" font-size="11" fill="#a8b0c0">body: 181 cm, 82 kg</text>
+<text x="56" y="100" font-family="system-ui" font-size="11" fill="#a8b0c0">seat target + tolerance</text>
+<text x="56" y="116" font-family="system-ui" font-size="11" fill="#a8b0c0">8 authored prose files</text>
+
+<rect x="40" y="150" width="220" height="86" rx="10" fill="#252932" stroke="#e8c96a" stroke-width="1.8"/>
+<text x="56" y="172" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#e8c96a">the ride script</text>
+<text x="56" y="190" font-family="system-ui" font-size="11" fill="#a8b0c0">13 events, t = 121…590 s</text>
+<text x="56" y="206" font-family="system-ui" font-size="11" fill="#a8b0c0">g-force and jolt per event</text>
+<text x="56" y="222" font-family="system-ui" font-size="11" fill="#a8b0c0">this is the exogenous input</text>
+
+<rect x="300" y="44" width="300" height="86" rx="10" fill="#252932" stroke="#9fb4e8" stroke-width="1.8"/>
+<text x="316" y="66" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">world.py — the geometry</text>
+<text x="316" y="84" font-family="system-ui" font-size="11" fill="#a8b0c0">seat axes + hard travel limits</text>
+<text x="316" y="100" font-family="system-ui" font-size="11" fill="#a8b0c0">clamp on every write path</text>
+<text x="316" y="116" font-family="system-ui" font-size="11" fill="#a8b0c0">doors_locked — no action exists</text>
+
+<rect x="300" y="150" width="300" height="130" rx="10" fill="#252932" stroke="#9fb4e8" stroke-width="2"/>
+<text x="316" y="172" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#9fb4e8">cognition.py — the physiology</text>
+<text x="316" y="191" font-family="system-ui" font-size="11" fill="#a8b0c0">seat_fit() · comfort_target()</text>
+<text x="316" y="207" font-family="system-ui" font-size="11" fill="#a8b0c0">trust_value() · mood dynamics</text>
+<text x="316" y="223" font-family="system-ui" font-size="11" fill="#a8b0c0">first-order lag on speed &amp; comfort</text>
+<text x="316" y="239" font-family="system-ui" font-size="11" fill="#a8b0c0">exponential decay on g, jolt, rain</text>
+<text x="316" y="255" font-family="system-ui" font-size="11" fill="#a8b0c0">asymmetric mood relaxation</text>
+<text x="316" y="271" font-family="Consolas,monospace" font-size="10" fill="#7a8090">never sent to the model ↓</text>
+
+<rect x="300" y="300" width="300" height="86" rx="10" fill="#252932" stroke="#7fd4b8" stroke-width="1.8"/>
+<text x="316" y="322" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#7fd4b8">memory.py — retention</text>
+<text x="316" y="340" font-family="system-ui" font-size="11" fill="#a8b0c0">retrieval scorer, budget 6</text>
+<text x="316" y="356" font-family="system-ui" font-size="11" fill="#a8b0c0">recency · importance · relevance</text>
+<text x="316" y="372" font-family="system-ui" font-size="11" fill="#a8b0c0">store cap 400, never consolidates</text>
+
+<rect x="880" y="150" width="320" height="130" rx="10" fill="#252932" stroke="#c2a8e8" stroke-width="2"/>
+<text x="896" y="172" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#c2a8e8">reasoning.py:453 decide()</text>
+<text x="896" y="191" font-family="system-ui" font-size="11" fill="#a8b0c0">builds the prompt from five parts</text>
+<text x="896" y="207" font-family="system-ui" font-size="11" fill="#a8b0c0">episodes · body · world · vocab</text>
+<text x="896" y="225" font-family="system-ui" font-size="11" fill="#e8c96a">raw truth line only:</text>
+<text x="896" y="241" font-family="Consolas,monospace" font-size="10" fill="#a8b0c0">"height 380mm | g=0.12 …"</text>
+<text x="896" y="262" font-family="system-ui" font-size="11" fill="#e89aa0">no fit_gap, no comfort, no trust</text>
+
+<rect x="880" y="300" width="320" height="86" rx="10" fill="#252932" stroke="#c2a8e8" stroke-width="1.8"/>
+<text x="896" y="322" font-family="Consolas,monospace" font-size="12" font-weight="700" fill="#c2a8e8">actions.py → world.py</text>
+<text x="896" y="340" font-family="system-ui" font-size="11" fill="#a8b0c0">whitelist, then clamp</text>
+<text x="896" y="356" font-family="system-ui" font-size="11" fill="#a8b0c0">refusal returned as a real outcome</text>
+<text x="896" y="372" font-family="system-ui" font-size="11" fill="#a8b0c0">so the limit is learnable</text>
+
+<g fill="none" stroke="#8b93a5" stroke-width="1.8" marker-end="url(#a1)">
+  <path d="M260,88 L292,88"/>
+  <path d="M260,193 L292,193"/>
+  <path d="M600,215 L640,215 L640,215"/>
+  <path d="M600,343 L640,343 L640,290"/>
+  <path d="M880,215 L832,215 L832,215"/>
+</g>
+<path d="M600,265 L780,265 L780,292" fill="none" stroke="#e89aa0" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a2)"/>
+<text x="596" y="286" font-family="Consolas,monospace" font-size="10.5" fill="#e89aa0" text-anchor="end">derived values blocked</text>
+<path d="M1040,280 L1040,296" fill="none" stroke="#8b93a5" stroke-width="1.8" marker-end="url(#a1)"/>
+<path d="M300,343 L270,343 L270,90 L296,90" fill="none" stroke="#7fd4b8" stroke-width="1.8" marker-end="url(#a1)"/>
+</svg>
+</figure>
+
+<h2><span class="n">2</span> · The geometric fit model</h2>
+
+<p>
+  The seat has four axes. Fit is measured as a <b>normalised deviation from a target</b> on
+  each axis, scaled to full range, then averaged. It is the only piece of genuinely geometric
+  modelling in the system.
+</p>
+
+<div class="formula">
+  <div class="fn">seat_fit() &nbsp;<span class="ref">cognition.py:514–525</span></div>
+  <div class="eq">
+<span class="c">// normalise each axis to 0..1, where 1 = on target</span>
+d<sub>r</sub> = min(1, |rot − rot*| / 180)        <span class="c">// swivel, full scale 180°</span>
+d<sub>h</sub> = min(1, |hgt − hgt*| / 8)          <span class="c">// height, full scale 8 cm</span>
+d<sub>s</sub> = min(1, |slider − slider*| / 80)  <span class="c">// slide, full scale 80 mm</span>
+
+fit = { rot: 1−d<sub>r</sub>,  hgt: 1−d<sub>h</sub>,  sl: 1−d<sub>s</sub> }
+fit.<span class="v">overall</span> = 1 − (d<sub>r</sub> + d<sub>h</sub> + d<sub>s</sub>) / 3
+
+<span class="c">// belief["fit_gap"] = 1 − overall  → cognition.py:681</span>
+  </div>
+  <div class="why">
+    <b>Two design decisions to defend.</b> First, the three full-scale denominators — 180°, 8 cm,
+    80 mm — are <b>author-chosen normalisations, not physical constants</b>. They set how sensitive
+    each axis is. Second, the slide axis is included in the average precisely so that
+    "he wants more legroom" registers: 80 mm of slide is made commensurate with 8 cm of height so
+    both count as a full unit of deviation. Both are stated in the comment at
+    <span class="ref">cognition.py:520–522</span>.
+  </div>
+</div>
+
+<div class="formula butter">
+  <div class="fn">seat_pending() — the per-axis settle test &nbsp;<span class="ref">cognition.py:709–722</span></div>
+  <div class="eq">
+pending = ( |hgt − hgt*| &gt; tol_hgt · 10 · <span class="k">0.35</span>
+         <span class="f">OR</span> ang_dist(rot, rot*) &gt; tol_rot · <span class="k">0.35</span>
+         <span class="f">OR</span> |slider − slider*| &gt; tol_sl · <span class="k">0.35</span> )
+  </div>
+  <div class="why">
+    <b>This exists because the average is misleading, and the code says so.</b>
+    Rotation contributes only <code>1/180</code> of <code>fit_gap</code>, so a seat still
+    swivelled 30° from forward would read as "settled" on the average and never finish turning.
+    Settle is therefore decided <b>per axis at 35% of tolerance</b>, not by the mean.
+    <span class="ref">cognition.py:710–715</span> — this is a good answer to a question about why
+    the mean is insufficient.
+  </div>
+</div>
+
+<h3>The angular metric</h3>
+<div class="formula mint">
+  <div class="fn">ang_dist(a, b) &nbsp;<span class="ref">cognition.py:255</span></div>
+  <div class="eq">
+ang_dist(a,b) = | ((a − b) mod 360 + 540) mod 360 − 180 |
+  </div>
+  <div class="why">
+    Smallest absolute angle between two headings, in degrees, correct across the 0/359 seam.
+    The <code>+540 mod 360 − 180</code> construction maps the difference into [−180, 180] so
+    that 350° and 10° are 20° apart rather than 340°.
+  </div>
+</div>
+
+<h2><span class="n">3</span> · The mood and comfort dynamics</h2>
+
+<p>
+  This is the part most likely to be probed, because it is where a discrete-event ride meets a
+  continuous body. Two mechanisms: <b>exponential relaxation toward a target</b>, and
+  <b>impulse response to discrete events</b>.
+</p>
+
+<div class="formula lav">
+  <div class="fn">comfort attractor &nbsp;<span class="ref">cognition.py:527–532</span></div>
+  <div class="eq">
+rate(tbl, x) = clamped piecewise-linear interpolation   <span class="c">// cognition.py:279</span>
+
+comfort_target = clamp₀₁( 0.35 · rate(ROT, rot)
+                       + 0.35 · rate(HGT, hgt)
+                       + 0.30 · fit.overall )
+
+comfort ← comfort + (comfort_target − comfort) · min(1, dt · <span class="k">0.06</span>)
+  </div>
+  <div class="why">
+    The second line is <b>first-order exponential smoothing</b> — a one-pole low-pass filter.
+    It is written in the algebraic form rather than the closed form; with step <code>dt</code>
+    and gain <code>k</code> the implied time constant is <code>τ = 1/k</code>, so comfort here has
+    <b>τ ≈ 16.7 s</b>. Comfort <i>chases</i> the seat rather than tracking it instantly, which is
+    the intended inertia.
+  </div>
+</div>
+
+<div class="consts">
+  <div class="cst tau"><div class="k">comfort τ</div><div class="v">16.7 s</div><div class="w">1/0.06</div></div>
+  <div class="cst tau"><div class="k">speed τ</div><div class="v">20 s</div><div class="w">1/0.05</div></div>
+  <div class="cst"><div class="k">g-force decay</div><div class="v">0.30</div><div class="w">τ ≈ 3.3 s</div></div>
+  <div class="cst"><div class="k">jolt decay</div><div class="v">0.35</div><div class="w">τ ≈ 2.9 s</div></div>
+  <div class="cst"><div class="k">energy drain</div><div class="v">1.8e−4</div><div class="w">per sim-second</div></div>
+</div>
+
+<div class="formula lav">
+  <div class="fn">step(dt) — the continuous dynamics &nbsp;<span class="ref">cognition.py:958–996</span></div>
+  <div class="eq">
+<span class="c">// 1 · speed approaches the event's target, first-order lag</span>
+speed ← speed + (speed* − speed) · min(1, dt · 0.05)      <span class="c">// τ = 20 s</span>
+
+<span class="c">// 2 · comfort chases its attractor, first-order lag</span>
+comfort ← comfort + (comfort_target − comfort) · min(1, dt · 0.06)   <span class="c">// τ ≈ 16.7 s</span>
+
+<span class="c">// 3 · ride accelerations decay exponentially</span>
+g     ← g · exp(−dt · 0.30)
+jolt  ← jolt · exp(−dt · 0.35)
+
+<span class="c">// 4 · rain accumulates in a window, decays outside it</span>
+rain ← min(1, rain + dt·0.08)   <span class="f">if</span> 540 &lt; t &lt; 570   <span class="f">else</span>  rain · exp(−dt · 0.18)
+
+<span class="c">// 5 · monotone depletion</span>
+energy ← max(0.05, energy − dt · 1.8e−4)
+
+<span class="c">// 6 · suspicion relaxes to its set-point, ASYMMETRICALLY</span>
+<span class="f">if</span> suspicion &gt; base:  suspicion ← max(base, suspicion − dt · <span class="k">0.004</span>)
+<span class="f">else</span>:               suspicion ← min(base, suspicion + dt · <span class="k">0.003</span>)
+  </div>
+  <div class="why">
+    <b>Point 6 is the one to be ready for.</b> Suspicion relaxes <b>asymmetrically</b>: it falls
+    at 0.004/s and rises at 0.003/s toward the persona's set-point, and it is <i>clamped at the
+    set-point</i> in both directions — it cannot go below. So mood here is <b>hysteretic</b>, not
+    a simple exponential. The rate constants are also <i>not</i> consistent with a symmetric
+    τ; they are chosen by hand.
+    <br><br>
+    <b>Defensible as</b> a model of slow trust recovery and fast trust damage. <b>Not defensible
+    as</b> a derived quantity — it is a hand-tuned pair. If asked "where do 0.004 and 0.003 come
+    from", the honest answer is that they are author-set and have not been fitted to data.
+  </div>
+</div>
+
+<h3>Impulse response to a ride event</h3>
+<div class="formula blush">
+  <div class="fn">perceive_event(ev) &nbsp;<span class="ref">cognition.py:636–665</span></div>
+  <div class="eq">
+impact   = max(ev.g, ev.jolt)
+salience = max(0.35, 0.42 + 0.5 · impact)
+important = ev.kind ∈ {bump, arrive, workzone}
+
+<span class="f">if</span> ev.jolt &gt; 0.30:  suspicion ← min(1, suspicion + <span class="k">0.20</span>)
+                        comfort   ← max(0, comfort − ev.jolt · <span class="k">0.12</span>)
+
+<span class="c">// smaller, kind-specific suspicion increments</span>
+brake    : suspicion += 0.07
+overtake : suspicion += 0.05
+rain     : suspicion += 0.04
+  </div>
+  <div class="why">
+    The pothole at <code>t=258</code> (jolt 0.55) is the strongest single stimulus in the whole
+    ride: suspicion +0.20 and comfort −0.066 in one tick. The three smaller increments are
+    <b>hand-authored constants per event kind</b>, not fitted values. This is the clearest place
+    where the "no pre-baked psychological values" discipline is relaxed for simulation
+    bookkeeping — and it should be presented as such.
+  </div>
+</div>
+
+<h2><span class="n">4</span> · The trust formula — and why it is not the instrument</h2>
+
+<div class="formula">
+  <div class="fn">trust_value() &nbsp;<span class="ref">cognition.py:534–538</span></div>
+  <div class="eq">
+ev    = clamp₀₁(1 − jolt / 0.6)
+s     = 1 − suspicion
+
+trust = clamp₀₁( 0.34 · comfort
+               + 0.40 · s
+               + 0.16 · ev
+               + 0.10 · (1 − fit_gap) )
+  </div>
+  <div class="warn" style="margin-top:12px">
+    <b>This function exists in the code but is not a measurement.</b> It is a synthetic
+    composite whose four weights (0.34 / 0.40 / 0.16 / 0.10) sum to 1.00 and were chosen by
+    hand. In LLM mode <b>nothing reads it</b>: it does not reach the prompt, and the rules path
+    that consumed it is unreachable behind the early return at
+    <span class="ref">cognition.py:893</span>. The trust gauge in the UI is inert and carries a
+    visible note saying so.
+    <br><br>
+    <b>Trust is measured after the ride instead</b>, by the MDMT questionnaire (§7). If Prof
+    Weber asks why there are two trust quantities, that is the answer: this one is scaffolding
+    that was rendered harmless, and the other is the instrument.
+  </div>
+</div>
+
+<h2><span class="n">5</span> · Memory retention: the retrieval scorer</h2>
+
+<p>
+  Three signals compete, following Generative Agents (Park et al. 2023). This determines what the
+  model can see at all.
+</p>
+
+<div class="formula mint">
+  <div class="fn">score(ep, now, query) &nbsp;<span class="ref">memory.py:279–284</span></div>
+  <div class="eq">
+score = <span class="k">0.40</span> · recency + <span class="k">0.40</span> · importance + <span class="k">0.20</span> · relevance
+
+<span class="c">// recency: ACT*-flavoured, exponential in age</span>
+recency = act · 0.5 <sup> age / 120 </sup>          <span class="c">// half-life 120 sim-seconds</span>
+act     ← act · exp(−λ · dt)                      <span class="c">// λ = 0.004 per tick</span>
+
+<span class="c">// relevance: pure lexical token overlap</span>
+relevance = min(1, |tokens(ep) ∩ tokens(query)| / |tokens(query)| · 3)
+
+<span class="c">// importance: set by the model, no decay</span>
+  </div>
+  <div class="why">
+    <b>Four things to be candid about here.</b>
+    <br>· <b>The weights are unjustified.</b> 0.40/0.40/0.20 is not from the paper; Generative
+    Agents sums recency + importance + relevance with equal weight. Ours diverges deliberately
+    and the divergence has not been validated.
+    <br>· <b>Recency is doubly exponential</b> — the ACT* term <code>exp(−λ·dt)</code> and the
+    half-life term <code>0.5^(age/120)</code> compose, giving an effective decay considerably
+    faster than the half-life alone suggests.
+    <br>· <b>Relevance is lexical.</b> It will not match "table" to "desk", and it carries the
+    <i>lowest</i> weight while being the only term able to retrieve a specific old-but-relevant
+    episode against a window of near-identical recent ones.
+    <br>· <b>Importance is a boolean in practice.</b> The prompt asks
+    <code>"important": &lt;true if it matters, else false&gt;</code> and it is coerced with
+    <code>bool()</code> at <span class="ref">reasoning.py:506</span> before being stored in a
+    float slot — so it can only ever be <b>1.0 or 0.0</b>. There is no middle value, and
+    <code>RULE_IMPORTANCE_FLOOR = 0.85</code> is unreachable because <code>absorb()</code> never
+    passes <code>rule_important</code>.
+  </div>
+</div>
+
+<div class="formula mint">
+  <div class="fn">retrieve() &nbsp;<span class="ref">memory.py:286–297</span></div>
+  <div class="eq">
+rank all stored episodes by score descending
+<span class="f">if</span> score ties: newest first
+<span class="f">return</span> top <span class="v">RETRIEVE_BUDGET = 6</span>          <span class="c">// memory.py:54</span>
+
+store capacity  cap = 400 episodes, oldest deleted on overflow   <span class="c">// memory.py:205, 249–251</span>
+  </div>
+  <div class="why">
+    <b>The store and the window are different numbers.</b> 400 episodes are retained; 6 are ever
+    shown. <b>Raising the cap does nothing to what the model perceives</b> — the budget is the
+    binding constraint, and the cap is an archive concern.
+  </div>
+</div>
+
+<h2><span class="n">6</span> · The ride script — the exogenous phenomena</h2>
+
+<p>
+  Thirteen discrete events drive everything exogenous. This table <i>is</i> the independent
+  variable schedule for the ride.
+</p>
+
+<table>
+  <thead><tr><th>t (s)</th><th>KIND</th><th>EVENT</th><th>g</th><th>JOLT</th><th>SPEED</th><th class="bar-cell">EFFECT</th></tr></thead>
+  <tbody>
+    <tr><td class="n">121</td><td>depart</td><td>Departing — auto-pilot engaged</td><td class="n">0.15</td><td class="n">0.00</td><td class="n">60</td><td><div class="bar"><i style="width:8%;background:#5a6070"></i></div></td></tr>
+    <tr><td class="n">158</td><td>merge</td><td>Merging onto the motorway</td><td class="n">0.20</td><td class="n">0.00</td><td class="n">105</td><td><div class="bar"><i style="width:11%;background:#5a6070"></i></div></td></tr>
+    <tr><td class="n">200</td><td>curve</td><td>Long left-hand curve</td><td class="n">0.38</td><td class="n">0.00</td><td class="n">115</td><td><div class="bar"><i style="width:21%;background:var(--peri)"></i></div></td></tr>
+    <tr style="background:rgba(190,18,60,.07)"><td class="n">258</td><td><b>bump</b></td><td><b>Pothole · thump!</b></td><td class="n">0.10</td><td class="n"><b>0.55</b></td><td class="n">92</td><td><div class="bar"><i style="width:100%;background:var(--blush)"></i></div></td></tr>
+    <tr><td class="n">292</td><td>overtake</td><td>Overtaking a truck</td><td class="n">0.45</td><td class="n">0.25</td><td class="n">135</td><td><div class="bar"><i style="width:45%;background:var(--blush)"></i></div></td></tr>
+    <tr><td class="n">340</td><td>smooth</td><td>Cruising steadily</td><td class="n">0.08</td><td class="n">0.00</td><td class="n">120</td><td><div class="bar"><i style="width:4%;background:#5a6070"></i></div></td></tr>
+    <tr><td class="n">386</td><td>curve</td><td>Right-hand curve</td><td class="n">0.32</td><td class="n">0.00</td><td class="n">112</td><td><div class="bar"><i style="width:18%;background:var(--peri)"></i></div></td></tr>
+    <tr><td class="n">425</td><td>brake</td><td>Traffic ahead — slowing</td><td class="n">0.25</td><td class="n">0.18</td><td class="n">40</td><td><div class="bar"><i style="width:33%;background:var(--butter)"></i></div></td></tr>
+    <tr style="background:rgba(21,128,61,.06)"><td class="n">470</td><td><b>workzone</b></td><td><b>Roadworks · rumble strip</b></td><td class="n">0.12</td><td class="n">0.22</td><td class="n">70</td><td><div class="bar"><i style="width:40%;background:var(--butter)"></i></div></td></tr>
+    <tr><td class="n">520</td><td>smooth</td><td>Clear road again</td><td class="n">0.06</td><td class="n">0.00</td><td class="n">128</td><td><div class="bar"><i style="width:3%;background:#5a6070"></i></div></td></tr>
+    <tr><td class="n">550</td><td>rain</td><td>Light rain on the glass</td><td class="n">0.14</td><td class="n">0.10</td><td class="n">105</td><td><div class="bar"><i style="width:18%;background:var(--butter)"></i></div></td></tr>
+    <tr><td class="n">575</td><td>brake</td><td>Slowing for the destination</td><td class="n">0.20</td><td class="n">0.10</td><td class="n">30</td><td><div class="bar"><i style="width:18%;background:var(--butter)"></i></div></td></tr>
+    <tr style="background:rgba(127,212,184,.07)"><td class="n">590</td><td><b>arrive</b></td><td><b>Arrived — parked</b></td><td class="n">0.05</td><td class="n">0.00</td><td class="n">0</td><td><div class="bar"><i style="width:3%;background:var(--mint)"></i></div></td></tr>
+  </tbody>
+</table>
+<p class="cap">
+  <span style="color:var(--blush)">red</span> = the strongest jolt (pothole, t=258: suspicion
+  +0.20). &nbsp;<span style="color:var(--mint)">green</span> = arrival, which fires the end of the
+  episode and the questionnaire. &nbsp;<span style="color:var(--butter)">amber</span> =
+  mid-strength. The three marked <b>IMPORTANT_KINDS</b> — bump, arrive, workzone — are the events
+  that also raise memory salience above baseline.
+</p>
+
+<h3>The salience law</h3>
+<div class="formula blush">
+  <div class="eq">
+salience = max(0.35, 0.42 + 0.5 · max(g, jolt))
+memory_act = min(1.0, salience + (0.10 <span class="f">if</span> important <span class="f">else</span> 0))
+  </div>
+  <div class="why">
+    A smooth cruise still writes a trace at salience 0.42; the pothole writes one near 1.0.
+    <b>Every event writes an episode</b>, which is what makes the store grow monotonically
+    through the ride.
+  </div>
+</div>
+
+<h2><span class="n">7</span> · Hard limits — the geometry that binds</h2>
+
+<p>
+  These are not design choices but consequences of the drawn interior. The
+  <span class="ref">world.py:50–79</span> comment derives each one from measured clearance.
+</p>
+
+<div class="formula">
+  <div class="fn">Seat travel limits &nbsp;<span class="ref">world.py:80–83</span></div>
+  <div class="eq">
+slider_mm   ∈ [260, 440]     <span class="c">// forward binds: toes reach z 0.771 vs dash face 0.775</span>
+height_mm   ∈ [380, 460]     <span class="c">// cushion above floor; head at 1.34 m under 1.41 roofline</span>
+recline_deg ∈ [ 80, 110]     <span class="c">// backrest top 1 m clear of rear wall</span>
+rotation_deg∈ [  0, 359]     <span class="c">// clamped, never wrapped — the 0/359 seam stops travel</span>
+  </div>
+  <div class="why">
+    <b>The slider limit is the interesting one and worth telling properly.</b> The original range
+    allowed 460 mm, which put the occupant's toes at z 0.791 — <i>inside</i> the dash box, i.e.
+    outside the free cabin. The limit was moved to 440 because toe and cushion clearance bind
+    first, not the backrest. <b>A residual is documented and not fixed:</b> with the seat
+    swivelled aft at full travel, the backrest bottom edge grazes the dash top. Clearing that
+    would cap travel at 370 mm — below the seat's own 390 mm default — so the enforced limit is
+    the cushion/toe one. That is a deliberate, recorded trade-off rather than an oversight.
+    <br><br>
+    <code>rotation_deg</code> is clamped rather than wrapped, so <code>359 → 0</code> stops dead.
+  </div>
+</div>
+
+<div class="formula mint">
+  <div class="fn">The posture gate &nbsp;<span class="ref">world.py:179–188</span></div>
+  <div class="eq">
+STAND_SPEED_MAX_KMH = 1.0
+moving = speed_kmh &gt; 1.0
+
+can_stand() → (False, "the vehicle is moving at 105 km/h
+                            — a person cannot stand up in a moving car")
+  </div>
+  <div class="why">
+    <b>This is a physical fact, not a prompt.</b> The cabin measures its own speed; the model is
+    never asked to respect it. The threshold is 1.0 km/h and not 0 because a body cannot brace
+    against 3 km/h in a moving cabin either — and the ride cruises at tens of km/h, so it sits
+    far from any decision the ride actually turns on. A refusal is returned as a <b>real
+    outcome</b>, so the model can learn the limit rather than being told it.
+  </div>
+</div>
+
+<h2><span class="n">8</span> · The measurement instruments</h2>
+
+<div class="formula">
+  <div class="fn">The MDMT questionnaire &nbsp;<span class="ref">questionnaire.py:8–17, 40</span></div>
+  <div class="eq">
+16 items · 4 subscales · each rated 0…7 · "Does Not Fit" treated as missing
+
+subscale = mean(available items)                    <span class="c">// 0–7</span>
+
+Capacity Trust = mean(Reliable, Capable)
+Moral    Trust = mean(Ethical, Sincere)
+  </div>
+  <div class="why">
+    Fires <b>once, at the end of the ride</b>. Item order is shuffled so no subscale's items are
+    clustered.
+    <br><br>
+    <b>Two caveats to raise before they are raised for you.</b> First, the MDMT was designed for
+    <i>robots</i> and is being applied to a car — a category transfer that should be declared.
+    Second, <b>MDMT v2 exists (2025)</b>, and <b>Trust in Automation</b> (TiA) is the
+    automation-specific instrument. This must be settled before the first human participant.
+  </div>
+</div>
+
+<h3>Fresh-run guarantee</h3>
+<div class="formula mint">
+  <div class="eq">
+snapshot.priors = {"rides": 0, "trust": null}     <span class="c">// schema.py:84</span>
+loading a priors file requires an explicit  --priors &lt;path&gt;
+  </div>
+  <div class="why">
+    Every run starts from zero with no trust history, so runs cannot leak into one another. Worth
+    stating explicitly in a presentation — it is the kind of thing that is assumed and never said.
+  </div>
+</div>
+
+<h2><span class="n">9</span> · Three questions to have answers ready for</h2>
+
+<div class="qa">
+  <div class="q">Q · "Where do your constants come from?"</div>
+  <div class="a">
+    Mixed, and we should say so. <b>Geometric</b> ones are derived from the drawn interior with
+    measured clearance (the 440 mm slider). <b>Physical</b> ones are plausible but chosen
+    (the 16.7 s comfort τ, the 0.35 settle threshold). <b>Psychological</b> ones are hand-authored
+    (the 0.20 suspicion increment, the 0.34/0.40/0.16/0.10 trust weights, the 0.40/0.40/0.20
+    retrieval weights). <b>None are fitted to human data</b>, because no human data has been
+    collected yet. That is the single largest limitation of the model as it stands.
+  </div>
+</div>
+
+<div class="qa">
+  <div class="q">Q · "Your persona declares a preferred seat position. Isn't that an answer key?"</div>
+  <div class="a">
+    <b>Yes, and it is currently in the prompt</b> —
+    <span class="ref">phill.py:18–29</span> declares <code>slider_mm 330, height_mm 440, recline 95,
+    rotation 0</code> with a tolerance band, and <span class="ref">agent.py:177</span> writes
+    <i>"Preferred seat settings"</i> into the prompt. So the agent is handed its own answer before
+    the ride starts. The intent is to reduce this to a <i>starting</i> position — a fact about
+    where he got in — and leave the <i>preferred</i> position to be discovered. The contrast is
+    already in the same file: the <code>body</code> block says <i>"We supply the body, not the
+    conclusion."</i> That is a known open item, not a defended position.
+  </div>
+</div>
+
+<div class="qa">
+  <div class="q">Q · "What is your agent actually learning?"</div>
+  <div class="a">
+    One thing: it stores an episode per beat and re-retrieves up to six of them. CoALA names five
+    learning actions and we perform exactly <b>one of five</b> — episodic storage. There is
+    <b>no consolidation</b>: nothing is ever compressed into a reusable lesson, so the agent can
+    remember that a beat went badly but cannot conclude "therefore stop doing this."
+    <code>SemanticMemory.write()</code> returns <code>False</code> by design.
+    <br><br>
+    Being candid: this means the agent re-discovers the same discomfort on beat 40 that it found
+    on beat 5. It does not settle the way a person does. That is a fidelity limitation, not a
+    design feature.
+  </div>
+</div>
+
+<div class="keys">
+  <span><i style="background:var(--peri)"></i> geometry &amp; fit</span>
+  <span><i style="background:var(--mint)"></i> memory &amp; hard limits</span>
+  <span><i style="background:var(--lav)"></i> dynamics</span>
+  <span><i style="background:var(--blush)"></i> hand-authored constants</span>
+  <span><i style="background:var(--butter)"></i> authored prose input</span>
+</div>
+
+<footer>
+  cabin-agent-sim · the actual mathematics · <b>every formula on this page was read out of the
+  working tree on 2026-10-07</b> and the line references verified individually. No formula is
+  paraphrased from documentation or recalled from earlier in this project.
+  Sources read: <code>world.py</code> (all 203 lines) · <code>cognition.py:251–296, 505–538,
+  625–722, 955–996</code> · <code>memory.py:54–66, 205, 249–297</code> ·
+  <code>reasoning.py:222–261, 441, 453, 506</code> · <code>questionnaire.py</code> ·
+  <code>schema.py:84</code> · <code>personas/phill.py</code> ·
+  <code>agent.py:177</code>.
+  Companion to <a href="data-flow.html">data-flow.html</a>,
+  <a href="coala-correlation.html">coala-correlation.html</a> and
+  <a href="episodic-ten-beats.html">episodic-ten-beats.html</a>
+</footer>
+
+</div>
+</body>
+</html>
