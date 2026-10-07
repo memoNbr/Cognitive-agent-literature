@@ -29,6 +29,10 @@ docs/                          -- standalone knowledge pages (self-contained HTM
                                   the shipped EpisodicMemory: the scoring pipeline, what working memory holds
                                   at each beat, what drops out of the window, and a finding that corrected
                                   a prediction
+  sim-architecture-math.html      -- the actual arithmetic from persona entry to episode end: the geometric fit
+                                  model, first-order lag and exponential decay constants with their time
+                                  constants, the retrieval scorer, the 13-event ride script, the hard limits
+                                  with their geometric derivation, and the MDMT scoring
   backend-architecture.html      -- whiteboard map of the whole cabin-agent-sim backend: what the
                                   captain authors on disk, the Python process, the browser, one beat
                                   end to end, the chat path, and what is currently wrong
